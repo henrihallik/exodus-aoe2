@@ -10,7 +10,7 @@ All gameplay state uses synchronized XS globals, arrays and game time. No local-
 | 11:00–11:59 | East wind | Public 80-second countdown to the usable crossing. Evening light; fire pillars. |
 | 12:00–12:19 | Parting | Curtains withdraw. Outer barrier rows removed at 12:10. Inner rows remain until 12:20. Hazard off during withdrawal. |
 | 12:20–16:29 | Open | All 40 central barrier units removed. No flood damage. |
-| 16:30–17:59 | Warning | Sea road still fully open. Public 90-second evacuation warning. |
+| 16:30–17:59 | Warning | Sea road still fully open. Public 90-second evacuation warning, then reminders at 17:30 and 17:50. |
 | 18:00–18:39 | Return | Flood damage starts; central barriers restore with collision checking; curtains close over 40 seconds. |
 | 18:40–28:59 | Flooded | Hazard remains active until the next parting starts at 30:00. |
 
@@ -42,6 +42,12 @@ The event reveals access, not previously hidden resource information: scouting t
 
 ## Performance and failure handling
 
-The simulation runs at a one-second interval. Arrays are reused: nine fixed state/effect arrays and two query arrays. Smoke uses a 48-slot ring buffer with expiry; curtains reuse 12 references; pillar fire uses two references. There are at most two permanent bush fires. No trail grows indefinitely and no rule continuously spawns player units.
+The simulation runs at a one-second interval. Arrays are reused: ten fixed state/effect arrays and two query arrays. Smoke uses a 48-slot ring buffer with expiry; curtains reuse 12 references; pillar fire uses two references. Two references track permanent bush fires. No trail grows indefinitely and no rule continuously spawns player units.
+
+In 0.2.0, curtain motion uses smoothstep easing with unchanged endpoints and opening/closing times. Cloud height is reduced, and one pair of small transition mist puffs appears every six seconds outside the walkable strip, using the same bounded pool. Missing tracked Gaia fires are recreated only if their original shrub remains; player-owned scenery is never moved or removed. No resource animal migrates and no additional food or objective is introduced.
+
+After a gap of more than two game seconds, the current countdown is recomputed from the absolute schedule, without replaying same-phase events or applying catch-up damage. A late warning uses only its most urgent remaining reminder. This is gap/re-entry logic tested in mocks, not a claim that native save/load has been verified.
+
+Audio is scheduled separately from world effects. One highest-priority global cue is selected per tick, safety first. Quiet paired two-second ambience is rate-limited to one pair per 30 seconds, excluded during transitions/warnings and near known important cues. No local visibility, sound success or camera state controls simulation. See `AUDIO.md` for the finite-clip limits.
 
 Runtime initialization waits for generation, validates 120×120 size, two players plus Gaia, all 40 unique barrier slots, 64 original walls, and two shrubs. It retries for ten ticks and fails visibly if the contract is not met. The opening message is part of the engine smoke test.

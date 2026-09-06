@@ -29,7 +29,10 @@ The local checks do not replace any item below. Use side-swapped games and prese
 - Both moving guides remain scenery, grant no shared vision and cannot be selected to command them. Night-phase fire and day-phase cloud are readable without intrusive flashing.
 - At 07:00 and 25:00, confirm three 75-food bushes on each bank. Block one spawn tile; both gardens must roll back. Clear it within 30 seconds to allow a retry, or hold it to cancel both gardens.
 - Attack a Jericho wall early, then at 24:00 count seven horn calls. At 24:07 verify only original Gaia walls fall. Add nearby player-built walls; these must survive. Check that the preplaced gold/relics remain intact.
-- Listen to all seven custom WEM cues in the installed game. Verify volume, timing, path lookup and no overlap clipping. Repeat without the audio files: warnings/timers and every gameplay result must remain the same.
+- Listen to all twelve custom WEM cues in the installed game. Verify volume, timing, path lookup and no overlap clipping. Repeat without the audio files: warnings/timers and every gameplay result must remain the same.
+- At 17:30 and 17:50, verify the 30- and 10-second flood reminders. The open-crossing motif must not sound like the flood or Jericho calls. Ambient water/fire should be quiet and positional, never a global combat-masking wash.
+- Save/load in each sea phase, especially 17:49 and 17:59. Verify countdowns and no duplicate warnings, food, fires or audio bursts. The local tests only simulate execution gaps, not DE saves.
+- Confirm lower cloud pillars and transition mist do not conceal troops. No AI-generated custom sprite should be required or installed by the normal map ZIP.
 
 ## Multiplayer and balance
 

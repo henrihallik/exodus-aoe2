@@ -9,6 +9,12 @@ const layout=JSON.parse(fs.readFileSync(path.join(__dirname,'../docs/layout.json
 const kinds={gold:66,stone:102,berries:59,sheep:594,boar:48,deer:65,acacia:1063,
   bush:1360,gate:1323,torch:499,wall:117,relic:285,fish:458,mountain:1048,rock:623,flowers:334};
 
+test('presentation upgrade preserves the complete 0.1.0 authored gameplay layout',()=>{
+  const copy=structuredClone(layout);delete copy.version;
+  const digest=require('node:crypto').createHash('sha256').update(JSON.stringify(copy)).digest('hex');
+  assert.equal(digest,'4fa292471633552f4724a26d53ea2ec14ebf45a98cc89bf904b89eca65385342');
+});
+
 function translate(xs) {
   return xs.replace(/\/\*[\s\S]*?\*\//g,'').replace(/\/\/[^\n]*/g,'')
     .replace(/rule\s+(\w+)\s+active\s+minInterval\s+\d+\s+maxInterval\s+\d+\s*\{/g,'function $1() {')
@@ -53,7 +59,7 @@ function world({spawn=true,sound=true,players=3}={}) {
       assert.equal(owner,0,'events must never create player units');
       if(deny({object,owner,p,collision,now}))return -1;
       if(collision&&[...units.values()].some(u=>Math.abs(u.x-p.x)<.8&&Math.abs(u.y-p.y)<.8))return -1;
-      return add(object,p.x,p.y,owner);
+      const made=add(object,p.x,p.y,owner);units.get(made).z=p.z;return made;
     },
     xsRemoveUnit:id=>{assert.equal(units.get(id).owner,0,'only tracked Gaia scenery/new manna may be removed');removed.push(id);return units.delete(id);},
     xsSetUnitPosition:(id,p)=>{assert.equal(units.get(id).owner,0);Object.assign(units.get(id),p);return true;},
@@ -61,7 +67,7 @@ function world({spawn=true,sound=true,players=3}={}) {
     xsEffectAmount:(effect,object,attribute,value,player)=>{assert.equal(player,0);assert.ok([1323,1635,304,1308].includes(object));effects.push({effect,object,attribute,value,player});},
     xsGetColorMood:()=>4,xsSetColorMood:(mood,seconds)=>{moods.push({mood,seconds,time:now});return true;},
     xsChatData:message=>messages.push({message,time:now}),
-    xsPlaySound:name=>{sounds.push({name,time:now});return sound;},
+    xsPlaySound:(name,player,position,angle,unit,global)=>{sounds.push({name,time:now,player,position,angle,unit,global});return sound;},
     xsDisplayTimer:(id,message,seconds)=>{timers.push({id,message,seconds,time:now});return true;},
     xsClearTimer:id=>{timers.push({id,clear:true,time:now});},
     xsDisableSelf:()=>{disabled=true;}
@@ -168,7 +174,7 @@ test('seven horns, then only original Gaia Jericho walls fall; player walls surv
 
 test('audio availability never changes simulation; particle arrays remain bounded over multiple cycles',()=>{
   const a=world({sound:true}),b=world({sound:false});a.run(1,2300);b.run(1,2300);
-  assert.equal(a.arrays.size,11);assert.equal(b.arrays.size,11);assert.ok(a.count(1308)<=48);
+  assert.equal(a.arrays.size,12);assert.equal(b.arrays.size,12);assert.ok(a.count(1308)<=48);
   assert.equal(a.count(1635),12);assert.ok(a.count(304)<=4);
   assert.deepEqual([...a.units.values()],[...b.units.values()]);assert.deepEqual(a.messages,b.messages);
 });
@@ -176,5 +182,76 @@ test('audio availability never changes simulation; particle arrays remain bounde
 test('long-running cycles recreate no duplicate sea gates or runaway effects',()=>{
   const w=world();w.tick(1);for(let c=0;c<20;c++)for(const offset of [660,720,730,740,990,1080,1120])w.tick(offset+c*1080);
   assert.equal(w.count(1323),40);assert.equal(w.count(1635),12);assert.ok(w.count(1308)<=48);
-  assert.equal(w.arrays.size,11);assert.equal(w.value('exFailure'),false);
+  assert.equal(w.arrays.size,12);assert.equal(w.value('exFailure'),false);
+});
+
+test('30s and 10s safety reminders fire once per cycle; late resume emits only urgent reminder',()=>{
+  const w=world();w.tick(1);w.run(990,1080);
+  assert.equal(w.messages.filter(m=>m.message.includes('30 SECONDS OR LESS')).length,1);
+  assert.equal(w.messages.filter(m=>m.message.includes('10 SECONDS OR LESS')).length,1);
+  assert.equal(w.sounds.filter(s=>s.name==='exodus_final_warning').length,1);
+  w.run(2070,2160);
+  assert.equal(w.messages.filter(m=>m.message.includes('10 SECONDS OR LESS')).length,2);
+  const late=world();late.tick(1);late.tick(1075);
+  assert.equal(late.messages.filter(m=>m.message.includes('30 SECONDS OR LESS')).length,0);
+  assert.equal(late.sounds.filter(s=>s.global).at(-1).name,'exodus_final_warning');
+  assert.equal(late.timers.at(-1).seconds,5);
+});
+
+test('warning audio takes precedence over same-tick discoveries and has a unique open motif',()=>{
+  const w=world();w.tick(1);w.add(83,46.5,35.5,1,904);w.tick(990);
+  const played=w.sounds.filter(s=>s.time===990&&s.global);
+  assert.equal(played.length,1);assert.equal(played[0].name,'exodus_warning');
+  assert.equal(w.value('xsArrayGetInt(exBushLit,0)'),1);
+  const opened=world();opened.tick(1);opened.tick(740);
+  assert.equal(opened.sounds.filter(s=>s.global).at(-1).name,'exodus_open');
+  assert.equal(opened.sounds.filter(s=>s.name==='exodus_horn').length,0);
+});
+
+test('positional ambience is paired, bounded, absent during warnings and never client-dependent',()=>{
+  const w=world();w.run(1,1150);
+  const local=w.sounds.filter(s=>!s.global);
+  assert.ok(local.length>0);
+  for(let i=0;i<local.length;i+=2){
+    const a=local[i],b=local[i+1];assert.equal(a.time,b.time);assert.equal(a.player,-1);
+    assert.equal(a.position.x+b.position.x,120);assert.equal(a.position.y+b.position.y,120);
+    if(i>=2)assert.ok(a.time-local[i-2].time>=30);
+    assert.ok(a.time<660||(a.time>=740&&a.time<990)||a.time>=1120);
+  }
+  for(let t=990;t<=1080;t++)assert.equal(local.filter(s=>s.time===t).length,0);
+});
+
+test('decorative discovery cannot mask an imminent public cue; fire ambience needs both sources',()=>{
+  const w=world();w.tick(1);w.add(83,46.5,35.5,1,904);w.tick(655);
+  assert.equal(w.sounds.filter(s=>s.time===655&&s.global).length,0);
+  w.run(656,740);assert.equal(w.sounds.filter(s=>s.name==='exodus_crackle').length,0);
+  w.add(83,73.5,84.5,2,904);w.run(741,850);
+  assert.ok(w.sounds.some(s=>s.name==='exodus_crackle'));
+});
+
+test('same-phase resume repairs countdown without replaying opening, reward or horn',()=>{
+  const w=world();w.tick(1);w.tick(740);const before=w.sounds.filter(s=>s.global).length;
+  w.tick(900);assert.equal(w.timers.at(-1).seconds,180);
+  assert.equal(w.sounds.filter(s=>s.global).length,before);
+  assert.equal(w.count(59),18);w.tick(901);assert.equal(w.count(59),18);
+});
+
+test('missing cosmetic fire is repaired once; player-owned fire is never moved or deleted',()=>{
+  const w=world();w.tick(1);w.add(83,46.5,35.5,1,904);w.tick(2);
+  const original=w.value('xsArrayGetInt(exBushFires,0)');w.units.delete(original);w.tick(3);
+  const repaired=w.value('xsArrayGetInt(exBushFires,0)');assert.notEqual(repaired,original);
+  w.tick(4);assert.equal(w.value('xsArrayGetInt(exBushFires,0)'),repaired);
+  w.units.get(repaired).owner=1;w.tick(5);assert.ok(w.units.has(repaired));
+  assert.equal(w.messages.filter(m=>m.message.includes('BUSH BURNS')).length,1);
+});
+
+test('curtain easing preserves endpoints and rotational pairing; transition mist stays outside seabed',()=>{
+  const w=world();w.tick(1);w.tick(720);
+  const first=[...w.units.values()].filter(u=>u.object===1635)[0];assert.equal(first.x,58.5);
+  w.tick(730);assert.equal(first.x,56);w.tick(740);assert.equal(first.x,53.5);
+  for(let i=0;i<12;i+=2){const a=w.units.get(w.value(`xsArrayGetInt(exCurtains,${i})`));
+    const b=w.units.get(w.value(`xsArrayGetInt(exCurtains,${i+1})`));assert.equal(a.x+b.x,120);assert.equal(a.y+b.y,120);}
+  w.tick(1080);
+  const low=[...w.units.values()].filter(u=>u.object===1308&&u.z===.5);assert.equal(low.length,2);
+  for(const u of low)assert.ok(u.x<55||u.x>=65);
 });

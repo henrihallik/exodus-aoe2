@@ -1,6 +1,6 @@
 # Original event audio
 
-Seven original, procedurally synthesized cues are included. No copyrighted recording, commercial soundtrack, spoken impersonation, or game audio was sampled.
+Twelve original, procedurally synthesized cues are included in 0.2.0. No copyrighted recording, commercial soundtrack, spoken impersonation, or game audio was sampled. There is no narration or continuous music.
 
 | Cue | Duration | Sound design |
 | --- | --- | --- |
@@ -11,8 +11,21 @@ Seven original, procedurally synthesized cues are included. No copyrighted recor
 | `exodus_flood` | 7 s | Water wash and restrained low rumble |
 | `exodus_bush` | 3.5 s | Crackle and a quiet sustained tone |
 | `exodus_manna` | 4 s | Four ascending bell-like tones |
+| `exodus_open` | 2 s | Rising open-fifth motif reserved for the usable crossing |
+| `exodus_final_warning` | 2 s | Short lower repeated motif for the final ten seconds |
+| `exodus_jericho` | 3 s | Granular masonry impacts and decaying rubble, separate from flood audio |
+| `exodus_shore` | 2 s | Quiet positional water wash on both banks |
+| `exodus_crackle` | 2 s | Quiet positional crackling when both shrine fires exist |
 
-The horn is a synthesized dramatic cue, not an authentic recorded shofar. All files are mono, 48 kHz, 16-bit PCM, with peaks limited to approximately −6 dBFS. This leaves headroom for ordinary game effects. Cues are short and event-driven; no looping music replaces the player's normal soundtrack.
+The horn is a synthesized dramatic cue, not an authentic recorded shofar. All files are mono, 48 kHz, 16-bit PCM. Event peaks are capped at 0.35 (approximately −9 dBFS), and ambient peaks at 0.08 (approximately −22 dBFS). These ceilings leave headroom; actual balance with game alerts still needs listening in DE.
+
+## Competitive audio scheduler
+
+Only one global cue is requested per tick. Flood/evacuation cues outrank Jericho, opening, transition and discovery cues. Decorative cues are suppressed during a hold window and immediately before scheduled public cues. The seven short trumpet calls retain their one-second cadence. Cosmetic suppression never cancels an event, food wave or visible notice.
+
+Ambient sound uses `xsPlaySound` with a fixed position and `global=false`. One mirrored pair of two-second clips is requested at most every 30 seconds in settled/open phases. The scheduler alternates to fire crackling only when both tracked shrine fires exist; otherwise it uses shore water. It never checks hidden armies or client-specific visibility. Ambient clips are excluded near public warnings and Jericho.
+
+These are finite clips, not looping sound events. No unsupported stop or volume API is assumed. A clip already playing may finish its remaining two seconds after a source disappears or events fail; no further ambient clip is started during failure. Positional attenuation, fog behavior and the game's interpretation of `global=false` need native testing. At most two ambient voices plus one global event clip are expected during ordinary uninterrupted execution; skipped execution and save/load must be checked in DE.
 
 ## Included formats
 
@@ -20,7 +33,7 @@ The horn is a synthesized dramatic cue, not an authentic recorded shofar. All fi
 - `audio/converted/*.wem`: actual Wwise PCMEX RIFF containers, with the 24-byte Wwise format chunk, channel configuration and PCM data. These are not ordinary WAV files renamed `.wem`.
 - The packaged game files go in `resources/_common/drs/sounds/`.
 
-The container writer follows the format documented by the source of [WEMConverter](https://github.com/EtiTheSpirit/WEMConverter) and [vgmstream](https://github.com/vgmstream/vgmstream/blob/master/src/meta/wwise.c). See `THIRD_PARTY.md` for the adapter attribution. Local tests check every chunk size, sample format, headroom and byte-for-byte PCM equivalence with the WAV master. The official vgmstream r2117 WASM decoder also independently decodes all seven WEM files back to PCM identical to their WAV masters; `tools/check-wem.cjs` reproduces that optional check.
+The container writer follows the format documented by the source of [WEMConverter](https://github.com/EtiTheSpirit/WEMConverter) and [vgmstream](https://github.com/vgmstream/vgmstream/blob/master/src/meta/wwise.c). See `THIRD_PARTY.md` for the adapter attribution. Local tests check every chunk size, sample format, headroom and byte-for-byte PCM equivalence with the WAV master. The official vgmstream r2117 WASM decoder independently checks decoded PCM against the WAV master; `tools/check-wem.cjs` reproduces that optional check.
 
 **In-game playback remains unverified.** Valid WEM structure is not proof that the current DE loader accepts this encoding or resolves the installation path. If a cue is silent, retain the same basename and convert its supplied WAV master with Audiokinetic Wwise, then replace that WEM. Do not just change a WAV file extension.
 

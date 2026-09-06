@@ -1,4 +1,4 @@
-/* EXODUS: SEA OF SIGNS 0.1.0 — Tiny / 1v1 / standard Conquest.
+/* EXODUS: SEA OF SIGNS 0.2.0 — Tiny / 1v1 / standard Conquest.
    Biblical theatre, not a claim to reconstruct one historical location.
    Sea = fixed non-buildable shallows + Gaia water curtains and barriers.
    No terrain repaint API, data mod, player stat changes, or custom victory.
@@ -41,6 +41,14 @@ int exOriginalMood = 0;
 bool exReady = false;
 bool exJerichoFallen = false;
 bool exFailure = false;
+int exBushFires = -1;
+int exWarningCycle = -1;
+int exWarningStage = 0;
+int exAmbientUntil = 0;
+int exQuietUntil = 0;
+int exPendingPriority = 0;
+string exPendingCue;
+int exAmbientPass = 0;
 
 vector exPoint(float x = 0.0, float y = 0.0, float z = 0.0) {
     return (xsVectorSet(x, y, z));
@@ -100,17 +108,117 @@ bool exLandClass(int c = 0) {
         (c == 959) || (c == 961));
 }
 
-void exCue(string name = "") {
-    // Optional custom WEM. Never branch simulation state on client audio.
-    xsPlaySound(name, -1, vector(-1, -1, -1), 0.0, -1, true);
-}
-
 void exNotice(string message = "") {
     xsChatData(message);
 }
 
 void exTimer(string message = "", int seconds = 0) {
     xsDisplayTimer(710, message, seconds);
+}
+
+bool exPublicCueSoon(int now = 0, int horizon = 8) {
+    if ((now < 660) && (now + horizon >= 660)) { return (true); }
+    if ((now < 1448) && (now + horizon >= 1440)) { return (true); }
+    if (now >= 660) {
+        int t = (now - 660) % 1080;
+        for (i = 0; < 7) {
+            int deadline = 1080;
+            if (i == 0) { deadline = 60; }
+            if (i == 1) { deadline = 80; }
+            if (i == 2) { deadline = 330; }
+            if (i == 3) { deadline = 390; }
+            if (i == 4) { deadline = 410; }
+            if (i == 5) { deadline = 420; }
+            if ((t < deadline) && (t + horizon >= deadline)) { return (true); }
+        }
+    }
+    return (false);
+}
+
+void exCue(string name = "") {
+    // One global cue per tick; safety beats atmosphere. No playback return
+    // value or local client information may affect this scheduler.
+    int cueRank = 20;
+    if (name == "exodus_wind") { cueRank = 50; }
+    if (name == "exodus_parting") { cueRank = 60; }
+    if (name == "exodus_horn") { cueRank = 70; }
+    if (name == "exodus_jericho") { cueRank = 75; }
+    if (name == "exodus_open") { cueRank = 80; }
+    if (name == "exodus_warning") { cueRank = 90; }
+    if (name == "exodus_final_warning") { cueRank = 95; }
+    if (name == "exodus_flood") { cueRank = 100; }
+    if (cueRank > exPendingPriority) {
+        exPendingCue = name;
+        exPendingPriority = cueRank;
+    }
+}
+
+void exFlushCue(int now = 0) {
+    if (exPendingPriority > 0) {
+        // Suppress decorative global cues during an earlier important cue.
+        if ((exPendingPriority >= 50) || ((now >= exQuietUntil) && (exPublicCueSoon(now, 8) == false))) {
+            xsPlaySound(exPendingCue, -1, vector(-1, -1, -1), 0.0, -1, true);
+            int hold = 8;
+            if (exPendingCue == "exodus_horn") { hold = 1; }
+            exQuietUntil = now + hold;
+        }
+    }
+    exPendingPriority = 0;
+    exPendingCue = "";
+}
+
+void exAmbient(int now = 0) {
+    // Finite quiet 2-second clips, NOT unkillable loops. At most one paired
+    // source (two voices) every 30 seconds. No unit proximity or fog queries:
+    // ambience cannot disclose a hidden army or depend on client visibility.
+    if ((now < exAmbientUntil) || (now < exQuietUntil) || (exPendingPriority > 0)) { return; }
+    if ((exPhase != 0) && (exPhase != 3)) { return; }
+    if (exPublicCueSoon(now, 2)) { return; }
+    bool fires = ((exAmbientPass % 2 == 1) &&
+        exOwnScenery(xsArrayGetInt(exBushFires, 0), exFire) &&
+        exOwnScenery(xsArrayGetInt(exBushFires, 1), exFire));
+    if (fires) {
+        xsPlaySound("exodus_crackle", -1, exPoint(46.5, 35.5), 0.0, -1, false);
+        xsPlaySound("exodus_crackle", -1, exPoint(73.5, 84.5), 0.0, -1, false);
+    } else {
+        xsPlaySound("exodus_shore", -1, exPoint(53.5, 46.5), 0.0, -1, false);
+        xsPlaySound("exodus_shore", -1, exPoint(66.5, 73.5), 0.0, -1, false);
+    }
+    exAmbientPass = exAmbientPass + 1;
+    exAmbientUntil = now + 30;
+}
+
+void exRefreshTimer(int now = 0) {
+    int t = (now - exFirstWind) % exPeriod;
+    if (exPhase == 0) {
+        int wait = exFirstWind - now;
+        if (now >= exFirstWind) { wait = exPeriod - t; }
+        exTimer("East wind in %d", wait);
+    }
+    if ((exPhase == 1) || (exPhase == 2)) { exTimer("Sea crossing opens in %d", 80 - t); }
+    if (exPhase == 3) { exTimer("WATERS RETURN in %d", 420 - t); }
+    if (exPhase == 4) { exTimer("EVACUATE SEABED — %d", 420 - t); }
+    if (exPhase == 5) { exTimer("Waters settling in %d", 460 - t); }
+}
+
+void exSafetyWarnings(int now = 0) {
+    if (exPhase != 4) { return; }
+    int cycle = exFloor(1.0 * (now - exFirstWind) / exPeriod);
+    if (cycle != exWarningCycle) { exWarningCycle = cycle; exWarningStage = 0; }
+    int remaining = 420 - (now - exFirstWind) % exPeriod;
+    // If execution resumes late, deliver only the most urgent remaining
+    // warning, never a burst of obsolete 30- and 10-second notices.
+    if ((remaining <= 10) && (exWarningStage < 2)) {
+        exWarningStage = 2;
+        exNotice("EXODUS: FINAL FLOOD WARNING — 10 SECONDS OR LESS. Leave the marked seabed NOW. Both coastal routes remain open.");
+        exCue("exodus_final_warning");
+    } else {
+        if ((remaining <= 30) && (exWarningStage < 1)) {
+            exWarningStage = 1;
+            exNotice("EXODUS: FLOOD WARNING — 30 SECONDS OR LESS. Withdraw toward either bank; leave the marked seabed.");
+            exCue("exodus_warning");
+        }
+    }
 }
 
 void exConfigureGaia() {
@@ -187,6 +295,7 @@ void exMoveCurtains(int now = 0) {
     if ((exPhase == 3) || (exPhase == 4)) { opening = 1.0; }
     if (exPhase == 2) { opening = (stageTime - 60.0) / 20.0; }
     if (exPhase == 5) { opening = 1.0 - (stageTime - 420.0) / 40.0; }
+    opening = opening * opening * (3.0 - 2.0 * opening);
     for (i = 0; < 12) {
         int side = i % 2;
         int row = exFloor(0.5 * i);
@@ -214,25 +323,25 @@ void exSea(int now = 0) {
         }
         if (phase == 1) {
             xsSetColorMood(cColorMoodEvening, 20);
-            exNotice("EXODUS: THE EAST WIND. The sea begins parting in 60 seconds; the crossing opens 20 seconds later.");
+            exNotice("EXODUS: THE EAST WIND. The public timer counts down to the usable crossing; wait for the OPEN signal.");
             exTimer("Sea crossing opens in %d", 80);
             exCue("exodus_wind");
         }
         if (phase == 2) {
-            exNotice("EXODUS: THE WATERS DIVIDE. Watch the water curtains withdraw. Crossing opens in 20 seconds.");
+            exNotice("EXODUS: THE WATERS DIVIDE. Watch the water curtains withdraw; wait for the OPEN signal and countdown.");
             exCue("exodus_parting");
         }
         if (phase == 3) {
             exClearGates();
             exGateFailures = 0;
             xsSetColorMood(cColorMoodDesert, 12);
-            exNotice("EXODUS: THE SEA ROAD IS OPEN. Both armies may cross. Waters return in 340 seconds.");
+            exNotice("EXODUS: THE SEA ROAD IS OPEN. Both armies may cross. The public timer shows when the waters return.");
             exTimer("WATERS RETURN in %d", 340);
-            exCue("exodus_horn");
+            exCue("exodus_open");
         }
         if (phase == 4) {
             xsSetColorMood(cColorMoodEvening, 15);
-            exNotice("EXODUS: FLOOD WARNING — 90 SECONDS. Leave the marked seabed before the waters return. Flooded land units lose 6 HP per second.");
+            exNotice("EXODUS: FLOOD WARNING. Follow the evacuation countdown. Leave the marked seabed; flooded land units lose 6 HP per second.");
             exTimer("EVACUATE SEABED — %d", 90);
             exCue("exodus_warning");
         }
@@ -243,6 +352,7 @@ void exSea(int now = 0) {
             exCue("exodus_flood");
         }
     }
+    exSafetyWarnings(now);
     if (phase == 2) {
         if ((now - exFirstWind) % exPeriod >= 70) { exClearGates(true); }
     }
@@ -289,7 +399,8 @@ void exSurveyLandUnits(int now = 0) {
                                     float dy = xsVectorGetY(p) - by;
                                     if (dx * dx + dy * dy <= 25.0) {
                                         xsArraySetInt(exBushLit, b, 1);
-                                        xsCreateUnit(exFire, 0, exPoint(bx, by), false, false, false);
+                                        int fireId = xsCreateUnit(exFire, 0, exPoint(bx, by), false, false, false);
+                                        xsArraySetInt(exBushFires, b, fireId);
                                         exParticle(exPoint(bx, by, 1.0), now, 8);
                                         exNotice("EXODUS: A BUSH BURNS, YET IS NOT CONSUMED. A sign only: no player receives a hidden bonus.");
                                         exCue("exodus_bush");
@@ -325,14 +436,47 @@ void exPillar(int now = 0) {
             xsArraySetInt(exPillars, side, -1);
         }
         if (now % 3 == 0) {
-            exParticle(exPoint(x, y, 1.5), now, 8);
-            exParticle(exPoint(x, y, 3.0), now, 8);
+            exParticle(exPoint(x, y, 1.0), now, 8);
+            exParticle(exPoint(x, y, 1.8), now, 8);
         }
     }
     if (mode != exLastPillar) {
         if (mode == 1) { exNotice("EXODUS: THE PILLARS OF FIRE GUIDE THE BANKS."); }
         else { exNotice("EXODUS: THE PILLARS OF CLOUD GUIDE THE BANKS."); }
         exLastPillar = mode;
+    }
+}
+
+void exSceneryMaintenance(int now = 0) {
+    // Reconcile only tracked, nonblocking decorative fires. Never touch a
+    // resource, restore a destroyed shrine, or replay its discovery reward.
+    for (b = 0; < 2) {
+        if (xsArrayGetInt(exBushLit, b) == 1) {
+            int id = xsArrayGetInt(exBushFires, b);
+            if (exOwnScenery(id, exFire) == false) {
+                float x = 46.5;
+                float y = 35.5;
+                if (b == 1) { x = 73.5; y = 84.5; }
+                // The shrine must still exist at its original position.
+                bool present = false;
+                exQuery = xsGetPlayerUnitIds(0, exBush, exQuery);
+                int shrubs = xsArrayGetSize(exQuery);
+                for (j = 0; < shrubs) {
+                    vector p = xsGetUnitPosition(xsArrayGetInt(exQuery, j));
+                    if ((exFloor(xsVectorGetX(p)) == exFloor(x)) && (exFloor(xsVectorGetY(p)) == exFloor(y))) { present = true; }
+                }
+                if (present) {
+                    id = xsCreateUnit(exFire, 0, exPoint(x, y), false, false, false);
+                    xsArraySetInt(exBushFires, b, id);
+                }
+            }
+        }
+    }
+    // Small paired mist puffs OUTSIDE the walkable strip during transitions;
+    // the existing 48-slot TTL pool bounds all mist, cloud and collapse dust.
+    if (((exPhase == 2) || (exPhase == 5)) && (now % 6 == 0)) {
+        exParticle(exPoint(53.5, 46.5, 0.5), now, 5);
+        exParticle(exPoint(66.5, 73.5, 0.5), now, 5);
     }
 }
 
@@ -392,7 +536,7 @@ void exJericho(int now = 0) {
         }
         exJerichoFallen = true;
         exNotice("EXODUS: THE WALLS OF JERICHO FALL. Both neutral enclosures are open. Player-built walls are untouched.");
-        exCue("exodus_flood");
+        exCue("exodus_jericho");
         for (i = 0; < 6) {
             exParticle(exPoint(7.5 + i, 56.5), now, 12);
             exParticle(exPoint(112.5 - i, 63.5), now, 12);
@@ -432,6 +576,7 @@ maxInterval 1
 {
     int now = xsGetGameTime();
     if (now == exLastTick) { return; }
+    bool refresh = (now > exLastTick + 2);
     exLastTick = now;
     if (exReady == false) {
         exAttempts = exAttempts + 1;
@@ -446,14 +591,19 @@ maxInterval 1
     if (exFailure) { return; }
     exSea(now);
     if (exFailure) { xsSetColorMood(exOriginalMood, 10); return; }
+    if (refresh) { exRefreshTimer(now); }
     exSurveyLandUnits(now);
     exPillar(now);
+    exSceneryMaintenance(now);
     if ((now >= 420) && (xsArrayGetInt(exMannaDone, 0) == 0)) { exManna(0, now); }
     if ((now >= 1500) && (xsArrayGetInt(exMannaDone, 1) == 0)) { exManna(1, now); }
     exJericho(now);
+    exAmbient(now);
+    exFlushCue(now);
 }
 
 void main() {
+    exPendingCue = "";
     exGates = xsArrayCreateInt(40, -1, "exGates");
     exEffects = xsArrayCreateInt(exPoolSize, -1, "exEffects");
     exExpires = xsArrayCreateInt(exPoolSize, 0, "exExpires");
@@ -463,6 +613,7 @@ void main() {
     exBushLit = xsArrayCreateInt(2, 0, "exBushLit");
     exInitialBushes = xsArrayCreateInt(6, -1, "exStagedFood");
     exFoodRetries = xsArrayCreateInt(2, 0, "exFoodRetries");
+    exBushFires = xsArrayCreateInt(2, -1, "exBushFires");
     // Configure before RMS objects are placed AND again in the runtime init.
     exConfigureGaia();
 }

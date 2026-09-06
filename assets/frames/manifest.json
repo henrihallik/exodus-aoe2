@@ -1,0 +1,33 @@
+{
+  "status": "unbound AI frame study; not a game-ready sprite",
+  "frames": [
+    {
+      "i": 0,
+      "w": 627,
+      "h": 627,
+      "empty": 278767,
+      "visible": 114362
+    },
+    {
+      "i": 1,
+      "w": 627,
+      "h": 627,
+      "empty": 280549,
+      "visible": 112580
+    },
+    {
+      "i": 2,
+      "w": 627,
+      "h": 627,
+      "empty": 280150,
+      "visible": 112979
+    },
+    {
+      "i": 3,
+      "w": 627,
+      "h": 627,
+      "empty": 277780,
+      "visible": 115349
+    }
+  ]
+}

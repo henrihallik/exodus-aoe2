@@ -15,7 +15,7 @@ import shutil
 import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
-VERSION = "0.1.0"
+VERSION = "0.2.0"
 SIZE = 120
 STARTS = [(60, 24), (59, 95)]
 TERRAIN = {"sand": 14, "dirt": 6, "grass": 0, "water": 1, "beach": 2,
@@ -267,7 +267,7 @@ def build():
     (ROOT/"docs/layout.json").write_text(json.dumps(layout,separators=(",",":"))+"\n")
     (ROOT/"docs/atlas.svg").write_text(atlas(layout),encoding="utf-8")
     members = [rpath,xpath]
-    for name in ("README.md","PLAYTEST.md","SUBMISSION.md","THIRD_PARTY.md","docs/EVENTS.md","docs/AUDIO.md","docs/VALIDATION.md","docs/atlas.svg","docs/age-of-rms-seed-1.png"):
+    for name in ("README.md","PLAYTEST.md","SUBMISSION.md","THIRD_PARTY.md","docs/EVENTS.md","docs/AUDIO.md","docs/ART.md","docs/UPGRADE-0.2.0.md","docs/VALIDATION.md","docs/atlas.svg","docs/age-of-rms-seed-1.png"):
         source=ROOT/name
         if source.exists():
             target=mod/name
@@ -293,7 +293,16 @@ def build():
             info.compress_type=zipfile.ZIP_DEFLATED
             bundle.writestr(info,path.read_bytes())
     digest=hashlib.sha256(archive.read_bytes()).hexdigest()
-    (ROOT/"dist/SHA256SUMS").write_text(f"{digest}  {archive.name}\n")
+    checksums=f"{digest}  {archive.name}\n"
+    art=ROOT/"dist"/f"Exodus-Art-Study-{VERSION}.zip"
+    with zipfile.ZipFile(art,"w",zipfile.ZIP_DEFLATED) as bundle:
+        for path in sorted((ROOT/"assets").rglob("*")) + [ROOT/"docs/ART.md"]:
+            if path.is_file():
+                info=zipfile.ZipInfo("Exodus-Art-Study/"+path.relative_to(ROOT).as_posix(),(2026,9,6,0,0,0))
+                info.compress_type=zipfile.ZIP_DEFLATED
+                bundle.writestr(info,path.read_bytes())
+    checksums+=f"{hashlib.sha256(art.read_bytes()).hexdigest()}  {art.name}\n"
+    (ROOT/"dist/SHA256SUMS").write_text(checksums)
     print(f"RMS: {rpath.stat().st_size:,} bytes; XS: {xpath.stat().st_size:,} bytes; ZIP: {archive.stat().st_size:,} bytes")
     print(dict(Counter(o["kind"] for o in layout["objects"])))
     return layout

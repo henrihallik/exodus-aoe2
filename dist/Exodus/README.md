@@ -8,7 +8,11 @@ Two oasis settlements face a sea. Around it lie two coastal roads and the sealed
 
 The spectacle is public. The decisions are yours: take the long coastal road, commit to the temporary sea crossing, contest the gardens, or break into the ruins before the appointed hour.
 
-Version **0.1.0 is an implemented playtest candidate, not an engine-validated competition submission**. No AoE2 DE installation is available here. The source tests and external preview cannot certify native pathfinding, multiplayer synchronization, visual appearance, or custom audio playback.
+Version **0.2.0 is an implemented playtest candidate, not an engine-validated competition submission**. No AoE2 DE installation is available here. The source tests and external preview cannot certify native pathfinding, multiplayer synchronization, visual appearance, or custom audio playback.
+
+The competitive-presentation upgrade adds 30- and 10-second flood reminders, priority-scheduled sounds, quiet positional shoreline/fire ambience, distinct opening and masonry cues, eased curtains, restrained transition mist, and recovery of missing decorative fires. Terrain, resources, damage, ordinary units and all event times are unchanged. See [0.2.0 changes](docs/UPGRADE-0.2.0.md).
+
+An [AI-generated burning-bush art study](docs/ART.md) is separate from the playable map. **No custom sprite is bound or required yet**; current game graphics mappings and native testing are pending. The standard build keeps native scenery and uses no data mod.
 
 ![Age of RMS alpha preview with documented decimal-position correction; no XS effects](docs/age-of-rms-seed-1.png)
 
@@ -29,11 +33,11 @@ The sea repeats every 18 minutes: subsequent openings are 30:20, 48:20, and so o
 
 ## Install
 
-Extract `dist/Exodus-0.1.0.zip` (or the downloaded release ZIP).
+Extract `dist/Exodus-0.2.0.zip` (or the corresponding downloaded release ZIP).
 
 1. Place `Exodus.rms` in `resources\_common\random-map-scripts\`.
 2. Place the required companion `exodus.xs` in `resources\_common\xs\`.
-3. For the custom audio, place the seven `.wem` files in `resources\_common\drs\sounds\`. The ZIP already has this directory structure. WAV files in `audio-source` are editable/listenable masters, **not** the files the game loads.
+3. For the custom audio, place the twelve `.wem` files in `resources\_common\drs\sounds\`. The ZIP already has this directory structure. WAV files in `audio-source` are editable/listenable masters, **not** the files the game loads.
 4. Use your DE player-profile resource folders or the corresponding game-installation folders. Install both scripts on both peers; do not rely on multiplayer transfer of the XS companion. Audio can also be installed as a local resource mod. See [audio notes](docs/AUDIO.md).
 5. Select **Random Map → Custom → Exodus**, two players, **Tiny**, Dark Age, standard resources, standard dataset, Normal reveal, Conquest, 200 population. This is not a scenario file. Conquest is the supported contest format; other lobby formats and team games are not validated.
 6. Confirm the opening `EXODUS: SEA OF SIGNS` message and the on-screen timer. An initialization/barrier failure message invalidates that generation for competition.

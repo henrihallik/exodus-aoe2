@@ -18,7 +18,9 @@ ROOT = Path(__file__).resolve().parents[1]
 RATE = 48000
 CUES = {"exodus_horn": 0.92, "exodus_wind": 7.0, "exodus_parting": 8.0,
         "exodus_warning": 4.0, "exodus_flood": 7.0, "exodus_bush": 3.5,
-        "exodus_manna": 4.0}
+        "exodus_manna": 4.0, "exodus_open": 2.0,
+        "exodus_final_warning": 2.0, "exodus_jericho": 3.0,
+        "exodus_shore": 2.0, "exodus_crackle": 2.0}
 
 
 def envelope(t, duration, attack=.04, release=.3):
@@ -46,6 +48,22 @@ def synthesize(name):
         env = envelope(t,duration,.12,.8)
         if name == "exodus_horn":
             value = horn(t) + .015*mid*env
+        elif name == "exodus_open":
+            # Open fifth rising: deliberately unlike the danger motif.
+            value = .35*horn(t,1.1,220) if t<1.1 else 0.
+            if t>=.6: value += .35*horn(t-.6,1.4,329.63)
+        elif name == "exodus_final_warning":
+            local=t%0.7
+            value=.65*horn(local,.45,130.81) if local<.45 else 0.
+        elif name == "exodus_jericho":
+            # Original granular masonry: irregular short stone impacts over
+            # a decaying low rubble bed, not the flood cue reused as collapse.
+            hit=(max(0.,math.sin(t*37))**24)*math.exp(-1.2*t)
+            value=env*(2.2*low+.9*mid*hit)*math.exp(-.45*t)
+        elif name == "exodus_shore":
+            value=env*(1.2*low+.25*mid)*(.7+.3*math.sin(t*2.1))
+        elif name == "exodus_crackle":
+            value=env*(.15*mid+.5*low+(white*.15 if rng.random()<.002 else 0.))
         elif name == "exodus_warning":
             local = t % 1.25
             value = horn(local,.92,146.83) if local < .92 else 0
@@ -75,7 +93,9 @@ def synthesize(name):
         for i in range(len(samples)-1,delay-1,-1):
             samples[i] += samples[i-delay]*gain
     peak=max(abs(x) for x in samples) or 1.
-    scale=min(1., .5/peak)
+    # Ambient source pairs are deliberately quieter than notifications.
+    ceiling = .08 if name in ("exodus_shore", "exodus_crackle") else .35
+    scale=min(1., ceiling/peak)
     pcm=array("h",(round(x*scale*32767) for x in samples))
     if sys.byteorder != "little":
         pcm.byteswap()

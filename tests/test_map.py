@@ -1,5 +1,6 @@
 import hashlib
 import importlib.util
+import json
 import math
 from pathlib import Path
 import re
@@ -130,19 +131,44 @@ class MapContract(unittest.TestCase):
                 self.assertIn(' EX_GAIA_SET ',line)
 
     def test_archive_scripts_audio_and_documentation_match_sources(self):
-        archive=ROOT/'dist/Exodus-0.1.0.zip'
+        archive=ROOT/f'dist/Exodus-{build.VERSION}.zip'
         with zipfile.ZipFile(archive) as z:
             self.assertEqual(z.read('Exodus/resources/_common/xs/exodus.xs'),(ROOT/'src/exodus.xs').read_bytes())
             self.assertEqual(z.read('Exodus/resources/_common/random-map-scripts/Exodus.rms'),self.rms.encode())
             self.assertFalse(any('.reference/' in name or '.tools/' in name or '__pycache__' in name for name in z.namelist()))
-            self.assertEqual(sum(name.endswith('.wem') for name in z.namelist()),7)
+            self.assertEqual(sum(name.endswith('.wem') for name in z.namelist()),12)
         expected=(ROOT/'dist/SHA256SUMS').read_text().split()[0]
         self.assertEqual(hashlib.sha256(archive.read_bytes()).hexdigest(),expected)
 
 
 class AudioContract(unittest.TestCase):
+    def test_ambient_and_event_headroom_and_xs_cue_coverage(self):
+        xs=(ROOT/'src/exodus.xs').read_text()
+        used=set(re.findall(r'"(exodus_[a-z_]+)"',xs))
+        packaged={p.stem for p in (ROOT/'audio/converted').glob('*.wem')}
+        self.assertEqual(used,packaged)
+        for p in (ROOT/'audio').glob('*.wav'):
+            with wave.open(str(p),'rb') as wav:
+                pcm=wav.readframes(wav.getnframes())
+                if p.stem in ('exodus_shore','exodus_crackle'):
+                    self.assertEqual(wav.getnframes(),96000)
+            samples=struct.unpack('<'+'h'*(len(pcm)//2),pcm)
+            ceiling=.08 if p.stem in ('exodus_shore','exodus_crackle') else .35
+            self.assertLessEqual(max(abs(s) for s in samples),math.ceil(ceiling*32767))
+
+    def test_art_study_is_separate_and_no_graphics_override_ships(self):
+        with zipfile.ZipFile(ROOT/f'dist/Exodus-{build.VERSION}.zip') as game:
+            self.assertFalse(any('/graphics/' in n or n.endswith(('.dat','.smx','.sld')) for n in game.namelist()))
+        with zipfile.ZipFile(ROOT/f'dist/Exodus-Art-Study-{build.VERSION}.zip') as art:
+            self.assertEqual(sum(n.endswith('.png') for n in art.namelist()),5)
+            self.assertFalse(any('/resources/' in n for n in art.namelist()))
+        manifest=json.loads((ROOT/'assets/frames/manifest.json').read_text())
+        self.assertEqual(len(manifest['frames']),4)
+        for f in manifest['frames']:
+            self.assertGreater(f['empty'],0);self.assertGreater(f['visible'],0)
+
     def test_wem_chunks_decode_to_exact_wav_pcm_with_headroom(self):
-        files=list((ROOT/'audio').glob('*.wav'));self.assertEqual(len(files),7)
+        files=list((ROOT/'audio').glob('*.wav'));self.assertEqual(len(files),12)
         for f in files:
             with wave.open(str(f),'rb') as wav:
                 self.assertEqual((wav.getnchannels(),wav.getsampwidth(),wav.getframerate()),(1,2,48000))

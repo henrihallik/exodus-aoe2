@@ -1,14 +1,14 @@
-# Validation record — 0.1.0
+# Validation record — 0.2.0
 
 Date: 2026-09-06. Status: implemented playtest candidate. No native DE execution or multiplayer match has been performed here. This is not a competition-readiness certificate.
 
 ## Source and packaging checks
 
-- Python suite: 10 tests covering exact authored rotational symmetry, RMS coordinate reconstruction, resource counts, coastal connectivity, sea shortcut and exits, resource-cluster access, clear starts and manna gardens, package integrity and audio containers.
-- Node suite: 14 tests executing the actual XS source translated into JavaScript with mocked documented APIs. Coverage includes phase boundaries, initialization failures, staged openings, repeated floods, damage exclusions, collision-safe barrier restoration, fail-open handling, bushes, paired manna rollback, original-wall-only removal, audio-independent simulation and bounded effects over 20 cycles.
+- Python suite: 12 tests covering exact authored rotational symmetry, RMS coordinate reconstruction, resource counts, coastal connectivity, sea shortcut and exits, resource-cluster access, clear starts and manna gardens, package integrity, audio containers/headroom/cue coverage, and art-pack separation.
+- Node suite: 21 XS tests plus the authored-layout baseline check, executing the actual XS source translated into JavaScript with mocked documented APIs. Coverage includes phase boundaries, initialization failures, staged openings, repeated floods, damage exclusions, collision-safe barrier restoration, fail-open handling, bushes, paired manna rollback, original-wall-only removal, audio-independent simulation and bounded effects over 20 cycles. New checks cover warning reminders, cue priorities, paired/rate-limited positional ambience, countdown repair, fire recovery and eased curtain endpoints. The baseline check compares every authored terrain/resource/object position against 0.1.0, excluding only the version field.
 - These mocks are not an emulator: real unit classes, collision rules, graphics, deaths, pathfinding, synchronization and save/load must still be checked in DE.
 - XS lint: xs-check 0.2.29. RMS lint: rms-check 0.0.4 with the existing local compatibility patch for current DE syntax. That RMS checker is not an unmodified upstream release. Optional lint tools are external to this project's normal build and are not packaged.
-- Runtime scripts are approximately 205 KB RMS and 19 KB XS. Most download size is the seven original sound cues plus their editable WAV masters, not the map logic. Deterministic ZIP construction and SHA256SUMS are provided.
+- Runtime scripts are approximately 205 KB RMS and 26 KB XS. Most download size is the twelve original sound cues plus their editable WAV masters, not the map logic. Deterministic ZIP construction and SHA256SUMS are provided; the AI art-study ZIP is separate from the game package.
 
 ## Age of RMS alpha preview
 
@@ -28,7 +28,11 @@ Reproduction: clone age-of-rms under `.tools/age-of-rms`, run its `npm ci`, supp
 
 ## Audio checks
 
-All seven generated WEM files have been independently decoded by the official vgmstream r2117 WASM CLI; decoded PCM matches the corresponding WAV master byte for byte. The decoder identifies 48 kHz mono 16-bit PCM with an Audiokinetic Wwise RIFF header. This confirms decodability, **not acceptance by DE's current audio loader**. In-game playback remains pending.
+All twelve generated WEM files have been independently decoded by the official vgmstream r2117 WASM CLI; decoded PCM matches the corresponding WAV master byte for byte. The decoder identifies 48 kHz mono 16-bit PCM with an Audiokinetic Wwise RIFF header. This confirms decodability, **not acceptance by DE's current audio loader**. In-game playback and positional attenuation remain pending.
+
+## AI artwork boundary
+
+The built-in image-generation tool produced one transparent 1254x1254 sheet. Mechanical extraction produced four 627x627 PNGs, each verified to contain both transparent and visible pixels. The source sheet was visually inspected; frame-to-frame geometry is not perfectly consistent. It is an unbound art study, not a validated seamless sprite animation. No guessed graphics IDs, sprite overrides or data mod are included. Native scenery remains the playable fallback pending game-data access and engine verification.
 
 ## Remaining release gates
 

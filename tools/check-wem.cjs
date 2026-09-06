@@ -6,7 +6,7 @@ const vm = require('node:vm');
 const root=path.resolve(__dirname,'..');
 const decoder=path.join(root,'.tools/vgmstream-wasm/vgmstream-cli.js');
 const name=process.argv[2];
-if (!/^exodus_[a-z]+$/.test(name||'')) throw Error('Supply an exodus cue basename');
+if (!/^exodus_[a-z]+(?:_[a-z]+)*$/.test(name||'')) throw Error('Supply an exodus cue basename');
 const context={require,console,process:{...process,argv:['node',decoder,'-o','/decoded.wav','/'+name+'.wem']},
   __dirname:path.dirname(decoder),__filename:decoder,Buffer,TextDecoder,TextEncoder,
   setTimeout,clearTimeout,WebAssembly,performance,URL,fetch,
