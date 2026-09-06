@@ -1,0 +1,35 @@
+# Validation record — 0.1.0
+
+Date: 2026-09-06. Status: implemented playtest candidate. No native DE execution or multiplayer match has been performed here. This is not a competition-readiness certificate.
+
+## Source and packaging checks
+
+- Python suite: 10 tests covering exact authored rotational symmetry, RMS coordinate reconstruction, resource counts, coastal connectivity, sea shortcut and exits, resource-cluster access, clear starts and manna gardens, package integrity and audio containers.
+- Node suite: 14 tests executing the actual XS source translated into JavaScript with mocked documented APIs. Coverage includes phase boundaries, initialization failures, staged openings, repeated floods, damage exclusions, collision-safe barrier restoration, fail-open handling, bushes, paired manna rollback, original-wall-only removal, audio-independent simulation and bounded effects over 20 cycles.
+- These mocks are not an emulator: real unit classes, collision rules, graphics, deaths, pathfinding, synchronization and save/load must still be checked in DE.
+- XS lint: xs-check 0.2.29. RMS lint: rms-check 0.0.4 with the existing local compatibility patch for current DE syntax. That RMS checker is not an unmodified upstream release. Optional lint tools are external to this project's normal build and are not packaged.
+- Runtime scripts are approximately 205 KB RMS and 19 KB XS. Most download size is the seven original sound cues plus their editable WAV masters, not the map logic. Deterministic ZIP construction and SHA256SUMS are provided.
+
+## Age of RMS alpha preview
+
+Used the generator and canvas renderer from [age-of-rms 0.4.1](https://github.com/aknipler/age-of-rms). Exact checkout commit, diagnostics, placement reports and generated object coordinates are retained in `docs/age-of-rms-report.json` in the source project. This is an approximate third-party alpha preview, not DE and not an XS interpreter.
+
+The unmodified preview rounds every numeric percentage argument to a whole percent during S0 instantiation. At Tiny size, that shifts and merges fractional `land_position` anchors. Its seed-1 result therefore places only 231 objects, including 27 of 40 sea barriers. This does **not** establish that DE has the same failure: Zetnus's RMS guide explicitly documents DE support for floating-point land positions.
+
+The optional adapter preserves only `land_position` decimal literals through S0 using a cloned argument definition. It leaves the downloaded tool sources unchanged and still records diagnostics from the original reference data. Both the uncorrected seed-1 output and this clearly labelled compatibility view are retained; the correction is not hidden as an upstream pass or a game-engine result.
+
+With that correction, seeds **1, 7 and 42** each place all **262 authored Gaia objects at exactly their intended coordinates**, plus two town centers, two preview villagers and two scouts: 268 objects total. The adapter asserts the complete Gaia coordinate set and zero S6 placement failures. Native civilization-specific villager counts are not modeled by this preview.
+
+The raw parser/validator reports no errors, only two informational notices about the still-supported `effect_percent` spelling. Remaining generator caveats include unseen XS includes, approximate terrain masks, unmodeled wall connectivity, shuffled rather than native deterministic object placement, and cosmetic terrain-clump growth shortfalls. Those shortfalls affect texture coverage, not missing resource placements. Automatic shoreline generation also differs from the authored atlas.
+
+Visually inspected the generated minimap and planning atlas: both starts, forest belts, two sea basins, central crossing, both coastal routes and paired wall enclosures are visible. No burning-bush animation, moving pillar, parting curtain, flood, lighting transition or audio is visible/verified through this tool.
+
+Reproduction: clone age-of-rms under `.tools/age-of-rms`, run its `npm ci`, supply Puppeteer and a Chrome executable using `PUPPETEER_MODULE` and `CHROME_PATH`, then run `node tools/render-age-preview.cjs`. Preview dependencies are optional and excluded from the release ZIP.
+
+## Audio checks
+
+All seven generated WEM files have been independently decoded by the official vgmstream r2117 WASM CLI; decoded PCM matches the corresponding WAV master byte for byte. The decoder identifies 48 kHz mono 16-bit PCM with an Audiokinetic Wwise RIFF header. This confirms decodability, **not acceptance by DE's current audio loader**. In-game playback remains pending.
+
+## Remaining release gates
+
+Use `PLAYTEST.md`: critical items are the 40 scenery barriers' native collision/graphics, standard civilization starts, water curtains and pillar appearance, current audio loading, 6-HP flood behavior including relic carriers and transports, repeated save/load cycles and two-peer synchronization. Competitive balance requires side-swapped human matches. Do not submit as engine-tested until those checks actually pass.
