@@ -8,7 +8,7 @@ Two oasis settlements face a sea. Around it lie two coastal roads and the sealed
 
 The spectacle is public. The decisions are yours: take the long coastal road, commit to the temporary sea crossing, contest the gardens, or break into the ruins before the appointed hour.
 
-Version **0.2.1 is an implemented playtest candidate, not an engine-validated competition submission**. It removes non-ASCII punctuation implicated in the reported v0.1.0 XS compiler failure and adds strict script-encoding build checks. It also includes the previously unpublished v0.2.0 presentation/audio upgrade. Successful native compilation still needs confirmation. The source tests and external preview cannot certify native pathfinding, multiplayer synchronization, visual appearance, or custom audio playback.
+Version **0.2.2 is an implemented playtest candidate, not an engine-validated competition submission**. It replaces the uninitialized global string rejected by DE in v0.2.1 with a numeric audio cue ID, and guards against uninitialized variables/global string state. The ASCII encoding correction and v0.2.0 presentation/audio upgrade are retained. Successful native compilation still needs confirmation. The source tests and external preview cannot certify native pathfinding, multiplayer synchronization, visual appearance, or custom audio playback.
 
 The competitive-presentation upgrade adds 30- and 10-second flood reminders, priority-scheduled sounds, quiet positional shoreline/fire ambience, distinct opening and masonry cues, eased curtains, restrained transition mist, and recovery of missing decorative fires. Terrain, resources, damage, ordinary units and all event times are unchanged. See [0.2.0 changes](docs/UPGRADE-0.2.0.md).
 
@@ -33,7 +33,7 @@ The sea repeats every 18 minutes: subsequent openings are 30:20, 48:20, and so o
 
 ## Install
 
-Extract `dist/Exodus-0.2.1.zip` (or the corresponding downloaded release ZIP). Replace both scripts from the same ZIP and start a new match; an already-running or saved match is not a reliable test of a changed script.
+Extract `dist/Exodus-0.2.2.zip` (or the corresponding downloaded release ZIP). Replace both scripts from the same ZIP and start a new match; an already-running or saved match is not a reliable test of a changed script.
 
 1. Place `Exodus.rms` in `resources\_common\random-map-scripts\`.
 2. Place the required companion `exodus.xs` in `resources\_common\xs\`.

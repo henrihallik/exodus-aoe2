@@ -15,6 +15,14 @@ test('presentation upgrade preserves the complete 0.1.0 authored gameplay layout
   assert.equal(digest,'4fa292471633552f4724a26d53ea2ec14ebf45a98cc89bf904b89eca65385342');
 });
 
+test('numeric cue IDs preserve every global audio filename and reset after flush',()=>{
+  for(const name of ['bush','manna','wind','parting','horn','jericho','open','warning','final_warning','flood']) {
+    const w=world();w.value(`exCue("exodus_${name}"); exFlushCue(100);`);
+    assert.equal(w.sounds.at(-1).name,`exodus_${name}`);
+    assert.equal(w.value('exPendingCue'),0);assert.equal(w.value('exPendingPriority'),0);
+  }
+});
+
 function translate(xs) {
   return xs.replace(/\/\*[\s\S]*?\*\//g,'').replace(/\/\/[^\n]*/g,'')
     .replace(/rule\s+(\w+)\s+active\s+minInterval\s+\d+\s+maxInterval\s+\d+\s*\{/g,'function $1() {')

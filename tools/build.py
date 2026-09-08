@@ -11,11 +11,12 @@ import hashlib
 import json
 import math
 import random
+import re
 import shutil
 import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
-VERSION = "0.2.1"
+VERSION = "0.2.2"
 SIZE = 120
 STARTS = [(60, 24), (59, 95)]
 TERRAIN = {"sand": 14, "dirt": 6, "grass": 0, "water": 1, "beach": 2,
@@ -267,11 +268,25 @@ def ascii_script(source, name):
     return data
 
 
+def validate_xs_source(source):
+    # Strip comments and strings before checking declarations, so examples
+    # in documentation cannot trigger a false rejection.
+    code = re.sub(r'/\*[\s\S]*?\*/|//[^\n]*|"(?:\\.|[^"\\])*"', '', source)
+    if re.search(r'\b(?:int|float|bool|string|vector)\s+\w+\s*;', code):
+        raise ValueError("XS variables must have an initializer")
+    depth = 0
+    for line in code.splitlines():
+        if depth == 0 and re.match(r'\s*(?:extern\s+)?string\s+\w+\s*=', line):
+            raise ValueError("Use numeric IDs instead of global XS string state")
+        depth += line.count('{') - line.count('}')
+
+
 def build():
     layout = make_layout()
     # Validate BOTH scripts before touching the runnable output/package.
     rms_data = ascii_script(rms(layout), "Exodus.rms")
     xs_data = ascii_script((ROOT/"src/exodus.xs").read_text(encoding="utf-8"), "exodus.xs")
+    validate_xs_source(xs_data.decode("ascii"))
     mod = ROOT/"dist"/"Exodus"
     rpath = mod/"resources/_common/random-map-scripts/Exodus.rms"
     xpath = mod/"resources/_common/xs/exodus.xs"

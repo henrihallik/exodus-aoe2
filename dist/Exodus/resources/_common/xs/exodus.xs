@@ -1,4 +1,4 @@
-/* EXODUS: SEA OF SIGNS 0.2.1 - Tiny / 1v1 / standard Conquest.
+/* EXODUS: SEA OF SIGNS 0.2.2 - Tiny / 1v1 / standard Conquest.
    Biblical theatre, not a claim to reconstruct one historical location.
    Sea = fixed non-buildable shallows + Gaia water curtains and barriers.
    No terrain repaint API, data mod, player stat changes, or custom victory.
@@ -47,7 +47,7 @@ int exWarningStage = 0;
 int exAmbientUntil = 0;
 int exQuietUntil = 0;
 int exPendingPriority = 0;
-string exPendingCue;
+int exPendingCue = 0; // Numeric ID: avoid global string initialization quirks.
 int exAmbientPass = 0;
 
 vector exPoint(float x = 0.0, float y = 0.0, float z = 0.0) {
@@ -148,7 +148,8 @@ void exCue(string name = "") {
     if (name == "exodus_final_warning") { cueRank = 95; }
     if (name == "exodus_flood") { cueRank = 100; }
     if (cueRank > exPendingPriority) {
-        exPendingCue = name;
+        exPendingCue = cueRank;
+        if (name == "exodus_manna") { exPendingCue = 21; }
         exPendingPriority = cueRank;
     }
 }
@@ -157,14 +158,26 @@ void exFlushCue(int now = 0) {
     if (exPendingPriority > 0) {
         // Suppress decorative global cues during an earlier important cue.
         if ((exPendingPriority >= 50) || ((now >= exQuietUntil) && (exPublicCueSoon(now, 8) == false))) {
-            xsPlaySound(exPendingCue, -1, vector(-1, -1, -1), 0.0, -1, true);
+            // Local strings have literal initializers; no global string is
+            // required for persistent scheduler state.
+            string cueName = "exodus_bush";
+            if (exPendingCue == 21) { cueName = "exodus_manna"; }
+            if (exPendingCue == 50) { cueName = "exodus_wind"; }
+            if (exPendingCue == 60) { cueName = "exodus_parting"; }
+            if (exPendingCue == 70) { cueName = "exodus_horn"; }
+            if (exPendingCue == 75) { cueName = "exodus_jericho"; }
+            if (exPendingCue == 80) { cueName = "exodus_open"; }
+            if (exPendingCue == 90) { cueName = "exodus_warning"; }
+            if (exPendingCue == 95) { cueName = "exodus_final_warning"; }
+            if (exPendingCue == 100) { cueName = "exodus_flood"; }
+            xsPlaySound(cueName, -1, vector(-1, -1, -1), 0.0, -1, true);
             int hold = 8;
-            if (exPendingCue == "exodus_horn") { hold = 1; }
+            if (exPendingCue == 70) { hold = 1; }
             exQuietUntil = now + hold;
         }
     }
     exPendingPriority = 0;
-    exPendingCue = "";
+    exPendingCue = 0;
 }
 
 void exAmbient(int now = 0) {
@@ -603,7 +616,7 @@ maxInterval 1
 }
 
 void main() {
-    exPendingCue = "";
+    exPendingCue = 0;
     exGates = xsArrayCreateInt(40, -1, "exGates");
     exEffects = xsArrayCreateInt(exPoolSize, -1, "exEffects");
     exExpires = xsArrayCreateInt(exPoolSize, 0, "exExpires");

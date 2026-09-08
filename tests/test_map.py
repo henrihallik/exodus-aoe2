@@ -17,6 +17,13 @@ spec.loader.exec_module(build)
 
 
 class MapContract(unittest.TestCase):
+    def test_xs_declarations_require_initializers_and_avoid_global_strings(self):
+        build.validate_xs_source((ROOT/'src/exodus.xs').read_text())
+        for bad in ('string pending;', 'void f() { int x; }', 'string pending = "";'):
+            with self.assertRaises(ValueError):
+                build.validate_xs_source(bad)
+        build.validate_xs_source('int cue = 0;\nvoid f() { string local = "safe"; }')
+
     def test_scripts_are_ascii_in_source_and_release(self):
         xs=(ROOT/'src/exodus.xs').read_bytes()
         self.assertTrue(xs.isascii())
