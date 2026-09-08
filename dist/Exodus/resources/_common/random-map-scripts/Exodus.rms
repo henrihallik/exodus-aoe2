@@ -3,7 +3,7 @@
    Tiny / two players / standard dataset / Conquest. Both scripts required.
    Coast roads always open. Seabed x55..64, y44..75: 6 HP/s while flooded.
    Sea opens 12:20, returns 18:00; 18-minute repeating cycle.
-   Actual terrain is fixed; XS uses Gaia water scenery and barriers. */
+   Actual terrain is fixed; XS uses nonblocking Gaia water scenery and a damage hazard. */
 #includeXS exodus.xs
 #const T0 0
 #const T1 1
@@ -43,10 +43,6 @@ behavior_version 1
 override_map_size 120
 ai_info_map_type MEDITERRANEAN 0 0 0
 /* Pre-placement Gaia-only collision and effect settings. */
-effect_percent EX_GAIA_SET EX_GATE EX_SIZE_X 50
-effect_percent EX_GAIA_SET EX_GATE EX_SIZE_Y 50
-effect_amount EX_GAIA_SET EX_GATE EX_OBSTRUCTION 2
-effect_amount EX_GAIA_SET EX_GATE EX_BLOCKAGE 6
 effect_amount EX_GAIA_SET EX_TORCH EX_OBSTRUCTION 4
 <LAND_GENERATION>
 base_terrain T14
@@ -2186,46 +2182,6 @@ create_land { terrain_type T0 base_size 0 land_percent 0 land_position 50.21 15.
 create_land { terrain_type T0 base_size 0 land_percent 0 land_position 49.38 84.38 land_id 508 }
 create_land { terrain_type T6 base_size 0 land_percent 0 land_position 38.54 29.38 land_id 510 }
 create_land { terrain_type T6 base_size 0 land_percent 0 land_position 61.04 70.21 land_id 510 }
-create_land { terrain_type T4 base_size 0 land_percent 0 land_position 46.04 48.54 land_id 512 }
-create_land { terrain_type T4 base_size 0 land_percent 0 land_position 53.54 51.04 land_id 512 }
-create_land { terrain_type T4 base_size 0 land_percent 0 land_position 46.88 48.54 land_id 512 }
-create_land { terrain_type T4 base_size 0 land_percent 0 land_position 52.71 51.04 land_id 512 }
-create_land { terrain_type T4 base_size 0 land_percent 0 land_position 47.71 48.54 land_id 512 }
-create_land { terrain_type T4 base_size 0 land_percent 0 land_position 51.88 51.04 land_id 512 }
-create_land { terrain_type T4 base_size 0 land_percent 0 land_position 48.54 48.54 land_id 512 }
-create_land { terrain_type T4 base_size 0 land_percent 0 land_position 51.04 51.04 land_id 512 }
-create_land { terrain_type T4 base_size 0 land_percent 0 land_position 49.38 48.54 land_id 512 }
-create_land { terrain_type T4 base_size 0 land_percent 0 land_position 50.21 51.04 land_id 512 }
-create_land { terrain_type T4 base_size 0 land_percent 0 land_position 50.21 48.54 land_id 512 }
-create_land { terrain_type T4 base_size 0 land_percent 0 land_position 49.38 51.04 land_id 512 }
-create_land { terrain_type T4 base_size 0 land_percent 0 land_position 51.04 48.54 land_id 512 }
-create_land { terrain_type T4 base_size 0 land_percent 0 land_position 48.54 51.04 land_id 512 }
-create_land { terrain_type T4 base_size 0 land_percent 0 land_position 51.88 48.54 land_id 512 }
-create_land { terrain_type T4 base_size 0 land_percent 0 land_position 47.71 51.04 land_id 512 }
-create_land { terrain_type T4 base_size 0 land_percent 0 land_position 52.71 48.54 land_id 512 }
-create_land { terrain_type T4 base_size 0 land_percent 0 land_position 46.88 51.04 land_id 512 }
-create_land { terrain_type T4 base_size 0 land_percent 0 land_position 53.54 48.54 land_id 512 }
-create_land { terrain_type T4 base_size 0 land_percent 0 land_position 46.04 51.04 land_id 512 }
-create_land { terrain_type T4 base_size 0 land_percent 0 land_position 46.04 49.38 land_id 512 }
-create_land { terrain_type T4 base_size 0 land_percent 0 land_position 53.54 50.21 land_id 512 }
-create_land { terrain_type T4 base_size 0 land_percent 0 land_position 46.88 49.38 land_id 512 }
-create_land { terrain_type T4 base_size 0 land_percent 0 land_position 52.71 50.21 land_id 512 }
-create_land { terrain_type T4 base_size 0 land_percent 0 land_position 47.71 49.38 land_id 512 }
-create_land { terrain_type T4 base_size 0 land_percent 0 land_position 51.88 50.21 land_id 512 }
-create_land { terrain_type T4 base_size 0 land_percent 0 land_position 48.54 49.38 land_id 512 }
-create_land { terrain_type T4 base_size 0 land_percent 0 land_position 51.04 50.21 land_id 512 }
-create_land { terrain_type T4 base_size 0 land_percent 0 land_position 49.38 49.38 land_id 512 }
-create_land { terrain_type T4 base_size 0 land_percent 0 land_position 50.21 50.21 land_id 512 }
-create_land { terrain_type T4 base_size 0 land_percent 0 land_position 50.21 49.38 land_id 512 }
-create_land { terrain_type T4 base_size 0 land_percent 0 land_position 49.38 50.21 land_id 512 }
-create_land { terrain_type T4 base_size 0 land_percent 0 land_position 51.04 49.38 land_id 512 }
-create_land { terrain_type T4 base_size 0 land_percent 0 land_position 48.54 50.21 land_id 512 }
-create_land { terrain_type T4 base_size 0 land_percent 0 land_position 51.88 49.38 land_id 512 }
-create_land { terrain_type T4 base_size 0 land_percent 0 land_position 47.71 50.21 land_id 512 }
-create_land { terrain_type T4 base_size 0 land_percent 0 land_position 52.71 49.38 land_id 512 }
-create_land { terrain_type T4 base_size 0 land_percent 0 land_position 46.88 50.21 land_id 512 }
-create_land { terrain_type T4 base_size 0 land_percent 0 land_position 53.54 49.38 land_id 512 }
-create_land { terrain_type T4 base_size 0 land_percent 0 land_position 46.04 50.21 land_id 512 }
 create_land { terrain_type T2 base_size 0 land_percent 0 land_position 44.38 35.21 land_id 513 }
 create_land { terrain_type T2 base_size 0 land_percent 0 land_position 55.21 64.38 land_id 513 }
 create_land { terrain_type T1 base_size 0 land_percent 0 land_position 44.38 40.21 land_id 513 }
@@ -2379,7 +2335,6 @@ create_object EX_FISH { place_on_specific_land_id 507 set_gaia_object_only max_d
 create_object EX_ACACIA { place_on_specific_land_id 508 set_gaia_object_only max_distance_to_players 0 ignore_terrain_restrictions }
 create_object EX_BUSH { place_on_specific_land_id 510 set_gaia_object_only max_distance_to_players 0 ignore_terrain_restrictions }
 create_object EX_TORCH { place_on_specific_land_id 511 set_gaia_object_only max_distance_to_players 0 ignore_terrain_restrictions }
-create_object EX_GATE { place_on_specific_land_id 512 set_gaia_object_only max_distance_to_players 0 ignore_terrain_restrictions }
 create_object EX_TORCH { place_on_specific_land_id 513 set_gaia_object_only max_distance_to_players 0 ignore_terrain_restrictions }
 create_object EX_ROCK { place_on_specific_land_id 514 set_gaia_object_only max_distance_to_players 0 ignore_terrain_restrictions }
 create_object EX_MOUNTAIN { place_on_specific_land_id 515 set_gaia_object_only max_distance_to_players 0 ignore_terrain_restrictions }

@@ -101,11 +101,7 @@ def make_layout():
     group("deer", 60, 24, [(-10,8),(-9,9),(-8,10),(-11,10)])
     group("acacia", 60, 24, [(-4,-4),(-5,3),(5,-4),(4,5),(0,-6)])
     add("bush", 46, 35, "burning-bush")
-    # 40 middle-of-channel barriers: return water can never cage an army
-    # between two blocked entrances. Each half has an unobstructed bank exit.
-    for y in range(58, 60):
-        for x in range(55, 65):
-            add("gate", x, y, "sea-gate")
+    # Damage-only sea road: never place physical barriers in the shallows.
     for y in (42, 48, 54, 60, 66, 72, 77):
         add("torch", 53, y, "seabed-marker")
     # Jericho: 9x9 enclosures on each coastal route. Paths outside the walls
@@ -169,7 +165,7 @@ def rms(layout):
              "   Tiny / two players / standard dataset / Conquest. Both scripts required.",
              "   Coast roads always open. Seabed x55..64, y44..75: 6 HP/s while flooded.",
              "   Sea opens 12:20, returns 18:00; 18-minute repeating cycle.",
-             "   Actual terrain is fixed; XS uses Gaia water scenery and barriers. */",
+             "   Actual terrain is fixed; XS uses nonblocking Gaia water scenery and a damage hazard. */",
              "#includeXS exodus.xs"]
     for value in sorted(set(TERRAIN.values())):
         lines.append(f"#const T{value} {value}")
@@ -180,10 +176,6 @@ def rms(layout):
     lines += ["<PLAYER_SETUP>", "direct_placement", "behavior_version 1", "override_map_size 120",
               "ai_info_map_type MEDITERRANEAN 0 0 0",
               "/* Pre-placement Gaia-only collision and effect settings. */",
-              "effect_percent EX_GAIA_SET EX_GATE EX_SIZE_X 50",
-              "effect_percent EX_GAIA_SET EX_GATE EX_SIZE_Y 50",
-              "effect_amount EX_GAIA_SET EX_GATE EX_OBSTRUCTION 2",
-              "effect_amount EX_GAIA_SET EX_GATE EX_BLOCKAGE 6",
               "effect_amount EX_GAIA_SET EX_TORCH EX_OBSTRUCTION 4",
               "<LAND_GENERATION>", "base_terrain T14", "enable_waves 0"]
     for x,y,r,t in squares(layout["terrain"]):
@@ -297,8 +289,13 @@ def build(scripts_only=False):
     xpath.parent.mkdir(parents=True,exist_ok=True)
     rpath.write_bytes(rms_data)
     xpath.write_bytes(xs_data)
+    (ROOT/"docs/layout.json").write_text(json.dumps(layout,separators=(",",":"))+"\n")
     if scripts_only:
-        print("Updated loose RMS and XS only; no ZIP created.")
+        for name in ("README.md","PLAYTEST.md","SUBMISSION.md","docs/EVENTS.md"):
+            target=mod/name
+            target.parent.mkdir(parents=True,exist_ok=True)
+            shutil.copyfile(ROOT/name,target)
+        print("Updated loose scripts, layout and current documentation; no ZIP created.")
         return layout
     (ROOT/"docs/layout.json").write_text(json.dumps(layout,separators=(",",":"))+"\n")
     (ROOT/"docs/atlas.svg").write_text(atlas(layout),encoding="utf-8")

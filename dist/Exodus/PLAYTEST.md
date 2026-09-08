@@ -14,13 +14,13 @@ The local checks do not replace any item below. Use side-swapped games and prese
 
 ## Water is the critical acceptance gate
 
-- At game start, ordinary scouts cannot pass the central water barriers. Try diagonal corner cutting and large units. Ships also collide with the barrier pieces; verify access to the rest of both water basins.
+- Replace BOTH scripts and start a new match. Confirm build hazard-01 and no central rocks. Land units must physically traverse the road in every phase; verify the flooded shortcut costs 6 HP/second, including scouts, villagers, monks, siege and elephants for both players.
 - Native waterfall graphics on Gaia Rock 2 are animated and recognizable, with no remaining giant rock sprites. Verify collision is exactly one tile per piece and object data changes did not affect player-owned units.
 - The shallow route is still clearly marked by shore-side torches when covered by water curtains. The show must not obscure selection or an army's escape direction.
-- At 11:00 see the wind notice/timer; at 12:00 see the withdrawal; at 12:10 only outer rows disappear; at 12:20 every barrier is gone and formations can cross.
+- At 11:00 see the wind notice/timer; at 12:00 see withdrawal with damage still active; at 12:20 see SAFE and confirm damage stops. Verify warnings at 16:30, 17:30 and 17:50, and resumed damage at 18:00.
 - At 16:30 see the full 90-second flood warning. No early flood damage. At 18:00 compare damage to mirrored unarmored and armored units; expect 6 current HP/second within the bounds only.
 - Test a monk with a relic, a packed and unpacked trebuchet, rams with passengers, a fishing ship, transport ship with passengers, infantry, mounted ranged unit, livestock and a building outside the hazard. Relic drops and normal deaths must behave sensibly.
-- Park a unit in a returning barrier cell: no forced overlapping spawn; it can retreat or die to the already-announced hazard, and the vacated barrier cell then fills. Test dense formations and invulnerable editor units to exercise the 120-second fail-open safeguard.
+- Park a unit in the center when water returns: no rocks should spawn. Confirm HP drops and retreat remains possible. Test whether high-HP units can survive the dangerous shortcut; assess both players and civilization matchups.
 - Repeat at least three complete sea cycles, then leave an observer game running for two hours. Check memory, performance and the count of lingering smoke/fire/water objects.
 
 ## Other events and sound

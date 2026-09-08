@@ -1,5 +1,7 @@
 # Exodus: Sea of Signs
 
+**Current loose-file build: hazard-01.** Replace BOTH RMS and XS and start a new match. Sea rocks are removed from generation: the road is always passable, but land units lose 6 HP/second outside the safe window (12:20–18:00, repeating every 18 minutes). Damage continues through the parting animation. Warnings precede the returning flood. Tough units may survive a dangerous crossing. Native damage/pathfinding and competitive balance testing are still pending. No ZIP updated. Earlier build notes below are historical.
+
 **Latest visual fix: pillars-03.** Bank smoke now uses two persistent, ground-level emitters at fixed mirrored positions, rather than moving and repeatedly emitting overlapping elevated puffs. Fire phases remain. Includes the 22-waterfalls-per-side shoreline extension. Replace XS only; no ZIP. Native appearance still needs confirmation.
 
 **Latest visual adjustment: curtains-02.** Both waterfall curtains now have 22 pieces (44 total), spanning the same authored shoreline tile centers, y=44.5 through 75.5. Earlier mirrored ranges were offset by two tiles. Spacing remains about 1.48 tiles; the movement schedule and gameplay are unchanged. Replace XS only; no ZIP. Smoke-pillar appearance is still unresolved and is not changed by this adjustment.
@@ -66,9 +68,9 @@ The map is a stylized biblical collage, not a literal reconstruction of one hist
 
 All authored terrain and Gaia object placements are paired by 180-degree rotation. Four relics avoid a central one-tile positional bias. Each player has eight sheep, two boar, four deer, six berry bushes, seven main gold tiles plus four expansion gold tiles, five main stone tiles plus four expansion stone tiles, and five straggler trees. Each Jericho enclosure holds four extra gold tiles and one relic. Eight paired sea fish allow a limited naval/fishing option, which needs balance testing. No free dock or fishing ship is supplied.
 
-The underlying seabed is **permanently shallow, non-buildable terrain**. XS has no documented runtime terrain-repainting function. The sea is staged with native animated water graphics, Gaia scenery barriers, moving curtains, lighting transitions, and a bounded environmental-damage zone. It is not a fluid simulation or actual land-to-water terrain replacement. Sea barriers affect ships at their occupied tiles too; naval travel remains possible in the water basins around them.
+The underlying seabed is **permanently shallow, non-buildable terrain**. XS has no documented runtime terrain-repainting function. The sea is staged with native animated water graphics, nonblocking moving curtains, lighting transitions, and a bounded environmental-damage zone. It is not a fluid simulation or actual land-to-water terrain replacement. Ships are exempt from the flood hazard.
 
-Only Rock 2 scenery is repurposed as water barriers; fire, smoke and waterfall-background scenery are made nonblocking. Those changes target Gaia exclusively. The map creates no player-controlled supernatural hero or trainable custom unit.
+No sea rocks are generated or repurposed; fire, smoke and waterfall-background scenery are made nonblocking. Those changes target Gaia exclusively. The map creates no player-controlled supernatural hero or trainable custom unit.
 
 ## Files and reproducible build
 

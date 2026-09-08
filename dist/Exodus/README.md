@@ -1,5 +1,23 @@
 # Exodus: Sea of Signs
 
+**Current loose-file build: hazard-01.** Replace BOTH RMS and XS and start a new match. Sea rocks are removed from generation: the road is always passable, but land units lose 6 HP/second outside the safe window (12:20–18:00, repeating every 18 minutes). Damage continues through the parting animation. Warnings precede the returning flood. Tough units may survive a dangerous crossing. Native damage/pathfinding and competitive balance testing are still pending. No ZIP updated. Earlier build notes below are historical.
+
+**Latest visual fix: pillars-03.** Bank smoke now uses two persistent, ground-level emitters at fixed mirrored positions, rather than moving and repeatedly emitting overlapping elevated puffs. Fire phases remain. Includes the 22-waterfalls-per-side shoreline extension. Replace XS only; no ZIP. Native appearance still needs confirmation.
+
+**Latest visual adjustment: curtains-02.** Both waterfall curtains now have 22 pieces (44 total), spanning the same authored shoreline tile centers, y=44.5 through 75.5. Earlier mirrored ranges were offset by two tiles. Spacing remains about 1.48 tiles; the movement schedule and gameplay are unchanged. Replace XS only; no ZIP. Smoke-pillar appearance is still unresolved and is not changed by this adjustment.
+
+**Latest loose-file update: runtime-01.** Isolated player-query storage, empty-query reference fallback, verified barrier removal before OPEN, truthful failure messages, checked flood HP writes and Jericho removal, Gaia-specific scenery attribute changes, and 36 waterfall pieces (18 per side). No ZIP. Native validation of these corrections and continuous-looking water graphics is still pending; local tests do not certify DE behavior. Earlier entries below describe previous builds.
+
+**Latest fix: walls-01 — replace BOTH loose RMS and XS files.** RMS now places nonblocking setup torches at the 64 authored wall tiles. XS creates both Jericho enclosures during initialization, removes only those setup torches after success, and rolls back newly created walls if either enclosure fails. Coastal torches and each enclosure's four gold tiles plus relic are unchanged. No new ZIP; native wall appearance/collision still needs verification. Generate loose scripts with `python3 tools/build.py --scripts-only`. Older notes below describe earlier builds.
+
+**Latest direct-download fix: refs-01.** Gaia landmarks are now registered through existing reference IDs instead of the lookup that returned zero in native testing. The startup message should say `Registered 40 sea barriers, 64 walls and 2 shrubs`. Counts and unique authored tile positions are checked before events start. Replace only the loose XS file; no new ZIP was created. This fix still needs native confirmation. Earlier diagnostic notes below are historical.
+
+Latest direct-download diagnostic: **diag-02**. On a sea-barrier count failure it reports both lookup argument orders, then independently samples existing reference IDs 0–4095 and prints up to two objects at the barrier footprint (ID, owner, object type, coordinates). This is read-only inspection, not an automatic repair; initialization safety checks stay enabled. Send the `QUERY`, `SAMPLE`, and `SCAN` chat lines. No new ZIP.
+
+Diagnostic update: the direct-download XS prints `EXODUS XS BUILD: 2026-09-08 diag-01` on its first runtime tick. If initialization still fails, its final retry reports the first failed check with actual/expected dimensions, player count, landmark counts, or barrier coordinates/duplicate slot. Share that diagnostic message; event safety checks remain enabled. No ZIP was created for this update.
+
+Direct-download hotfix (2026-09-08): `main` fixes the 1v1 initialization player count. Download the updated [exodus.xs](dist/Exodus/resources/_common/xs/exodus.xs) as a raw file. Existing v0.2.2 ZIPs do not contain this fix; no new ZIP was created. Native event validation remains pending.
+
 **An epic biblical battlefield for AoE2 DE · Tiny · 1v1 · Conquest**
 
 [Download the latest playtest ZIP](https://github.com/henrihallik/exodus-aoe2/releases/latest) · [Release history](https://github.com/henrihallik/exodus-aoe2/releases)
@@ -50,9 +68,9 @@ The map is a stylized biblical collage, not a literal reconstruction of one hist
 
 All authored terrain and Gaia object placements are paired by 180-degree rotation. Four relics avoid a central one-tile positional bias. Each player has eight sheep, two boar, four deer, six berry bushes, seven main gold tiles plus four expansion gold tiles, five main stone tiles plus four expansion stone tiles, and five straggler trees. Each Jericho enclosure holds four extra gold tiles and one relic. Eight paired sea fish allow a limited naval/fishing option, which needs balance testing. No free dock or fishing ship is supplied.
 
-The underlying seabed is **permanently shallow, non-buildable terrain**. XS has no documented runtime terrain-repainting function. The sea is staged with native animated water graphics, Gaia scenery barriers, moving curtains, lighting transitions, and a bounded environmental-damage zone. It is not a fluid simulation or actual land-to-water terrain replacement. Sea barriers affect ships at their occupied tiles too; naval travel remains possible in the water basins around them.
+The underlying seabed is **permanently shallow, non-buildable terrain**. XS has no documented runtime terrain-repainting function. The sea is staged with native animated water graphics, nonblocking moving curtains, lighting transitions, and a bounded environmental-damage zone. It is not a fluid simulation or actual land-to-water terrain replacement. Ships are exempt from the flood hazard.
 
-Only Rock 2 scenery is repurposed as water barriers; fire, smoke and waterfall-background scenery are made nonblocking. Those changes target Gaia exclusively. The map creates no player-controlled supernatural hero or trainable custom unit.
+No sea rocks are generated or repurposed; fire, smoke and waterfall-background scenery are made nonblocking. Those changes target Gaia exclusively. The map creates no player-controlled supernatural hero or trainable custom unit.
 
 ## Files and reproducible build
 

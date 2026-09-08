@@ -6,27 +6,27 @@ All gameplay state uses synchronized XS globals, arrays and game time. No local-
 
 | First cycle | State | Crossing / hazard |
 | --- | --- | --- |
-| 00:00–10:59 | Flooded | Central barrier closed; marked seabed hazardous. Coast roads open. |
-| 11:00–11:59 | East wind | Public 80-second countdown to the usable crossing. Evening light; fire pillars. |
-| 12:00–12:19 | Parting | Curtains withdraw. Outer barrier rows removed at 12:10. Inner rows remain until 12:20. Hazard off during withdrawal. |
-| 12:20–16:29 | Open | All 40 central barrier units removed. No flood damage. |
+| 00:00–10:59 | Flooded | Sea road passable but hazardous (6 HP/s). Coast roads safe. |
+| 11:00–11:59 | East wind | Public 80-second countdown to the safe crossing; hazard continues. Evening light; fire pillars. |
+| 12:00–12:19 | Parting | Curtains withdraw. Damage continues until the SAFE signal at 12:20. |
+| 12:20–16:29 | Open | Safe crossing; no flood damage or physical barriers. |
 | 16:30–17:59 | Warning | Sea road still fully open. Public 90-second evacuation warning, then reminders at 17:30 and 17:50. |
-| 18:00–18:39 | Return | Flood damage starts; central barriers restore with collision checking; curtains close over 40 seconds. |
-| 18:40–28:59 | Flooded | Hazard remains active until the next parting starts at 30:00. |
+| 18:00–18:39 | Return | Flood damage starts; curtains close over 40 seconds. No physical barriers spawn. |
+| 18:40–28:59 | Flooded | Hazard remains active through the next parting, until SAFE at 30:20. |
 
-From the first east wind onward, the cycle length is 1,080 game seconds. The crossing is fully usable for 340 seconds per cycle. The middle barrier occupies tiles x=55…64, y=58…61. The hazard occupies x=55…64, y=44…75; XS tests tile-space coordinates against half-open bounds `[55,65) × [44,76)`.
+From the first east wind onward, the cycle length is 1,080 game seconds. The crossing is damage-free for 340 seconds per cycle, but physically passable throughout. Tough units may survive a hazardous crossing. The hazard occupies x=55…64, y=44…75; XS tests tile-space coordinates against half-open bounds `[55,65) × [44,76)`.
 
 Damage: six current HP per one-second rule execution, capped at zero. It ignores armor and does not award an opponent a scripted kill bounty. This is environmental damage, not a permanent maximum-HP/stat change. A duplicate rule execution within the same game second is ignored. The script does not apply a huge retrospective damage burst after a skipped tick. Death animation, monk relic drops, garrison behavior, and native combat-stat bookkeeping require engine verification.
 
 All documented normal mobile land classes are queried explicitly, including relic-carrying monks, packed/unpacked siege, mounted ranged units, kings and livestock. Naval classes are never queried for damage. Garrisoned units are skipped, so transport passengers should be safe while aboard. Buildings, Gaia, projectiles and resources are excluded. No ordinary trainable unit definition is changed.
 
-Barrier creation always uses collision checking. It retries occupied cells rather than forcing rocks underneath units. A unit remaining within the closing barrier footprint may obstruct closure and is exposed to the announced flood hazard. If any barrier cannot be restored for 120 consecutive checks, all event barriers are removed, damage/reward events stop, the lighting is restored, and a public message declares the generation invalid for contest play. Existing nonblocking curtains are cosmetic in that failure state.
+There are no sea barriers. Terrain remains shallow and the curtains are nonblocking. Verified HP-write failures still suspend events and declare the generation invalid; removing rocks is no longer a runtime dependency. Native damage and balance tests remain required.
 
 ## Burning bushes and guiding pillars
 
 Bush anchors: tile (46,35) and its rotational counterpart (73,84). Either player's ungarrisoned land unit within radius five can ignite either bush. Each fires once, leaves its original plant intact, and adds native bonfire/smoke scenery. Discovery is not ownership; no resources or combat bonuses are awarded.
 
-Two cloud guides patrol short, mirrored bank-side paths. At the wind, parting, warning and return phases, native fire accompanies them. The normal phase uses cloud only. Color moods blend over 10–20 seconds; the script never switches to the extreme-darkness mood or uses rapid light flashes. Native smoke lifetime/height and animation must be inspected in DE.
+Two persistent cloud emitters sit at fixed, mirrored bank-side positions. At the wind, parting, warning and return phases, native fire accompanies them. The normal phase uses cloud only. Color moods blend over 10–20 seconds; the script never switches to the extreme-darkness mood or uses rapid light flashes. Native smoke lifetime/height and animation must be inspected in DE.
 
 ## Manna gardens
 
@@ -50,4 +50,4 @@ After a gap of more than two game seconds, the current countdown is recomputed f
 
 Audio is scheduled separately from world effects. One highest-priority global cue is selected per tick, safety first. Quiet paired two-second ambience is rate-limited to one pair per 30 seconds, excluded during transitions/warnings and near known important cues. No local visibility, sound success or camera state controls simulation. See `AUDIO.md` for the finite-clip limits.
 
-Runtime initialization waits for generation, validates 120×120 size, two players plus Gaia, all 40 unique barrier slots, 64 original walls, and two shrubs. It retries for ten ticks and fails visibly if the contract is not met. The opening message is part of the engine smoke test.
+Runtime initialization waits for generation, validates 120×120 size, two players plus Gaia, 64 walls (or their setup markers) and two shrubs; obsolete sea rocks cause an explicit replace-both-scripts warning. It retries for ten ticks and fails visibly if the contract is not met. The opening message is part of the engine smoke test.

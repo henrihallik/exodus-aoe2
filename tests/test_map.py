@@ -93,9 +93,10 @@ class MapContract(unittest.TestCase):
     def test_resource_counts_and_landmark_contract(self):
         c=Counter(o['kind'] for o in self.objects)
         self.assertEqual({k:c[k] for k in ['gold','stone','berries','sheep','boar','deer','relic','fish','gate','wall','bush']},
-                         dict(gold=30,stone=18,berries=12,sheep=16,boar=4,deer=8,relic=4,fish=8,gate=40,wall=64,bush=2))
+                         dict(gold=30,stone=18,berries=12,sheep=16,boar=4,deer=8,relic=4,fish=8,gate=0,wall=64,bush=2))
         gates={(o['x'],o['y']) for o in self.objects if o['kind']=='gate'}
-        self.assertEqual(gates,{(x,y) for y in range(58,62) for x in range(55,65)})
+        self.assertEqual(gates,set())
+        self.assertNotIn("create_object EX_GATE",self.rms)
 
     def test_both_coastal_roads_connect_without_using_any_seabed(self):
         d=self.distances(build.STARTS[0],forbid_sea=True)
@@ -107,14 +108,14 @@ class MapContract(unittest.TestCase):
             self.assertIn((x,50),d);self.assertIn((x,70),d)
 
     def test_open_sea_is_a_meaningful_shortcut_with_clear_egress(self):
-        closed=self.distances(build.STARTS[0],True)
+        closed=self.distances(build.STARTS[0],forbid_sea=True)
         opened=self.distances(build.STARTS[0],False)
         self.assertLess(opened[build.STARTS[1]],closed[build.STARTS[1]]-30)
         self.assertNotIn((59,59),closed)
         self.assertIn((59,59),opened)
         for x in range(55,65):
-            self.assertIn((x,45),closed)
-            self.assertIn((x,74),closed)
+            self.assertIn((x,45),opened)
+            self.assertIn((x,74),opened)
 
     def test_start_resources_have_accessible_perimeters_and_equal_distances(self):
         a,b=[self.distances(start) for start in build.STARTS]
@@ -160,11 +161,11 @@ class MapContract(unittest.TestCase):
             if line.startswith(('effect_amount','effect_percent')):
                 self.assertIn(' EX_GAIA_SET ',line)
 
-    def test_archive_scripts_audio_and_documentation_match_sources(self):
+    def test_loose_scripts_match_sources_and_historical_archive_is_intact(self):
+        self.assertEqual((ROOT/'dist/Exodus/resources/_common/xs/exodus.xs').read_bytes(),(ROOT/'src/exodus.xs').read_bytes())
+        self.assertEqual(self.rms,build.rms(self.layout))
         archive=ROOT/f'dist/Exodus-{build.VERSION}.zip'
         with zipfile.ZipFile(archive) as z:
-            self.assertEqual(z.read('Exodus/resources/_common/xs/exodus.xs'),(ROOT/'src/exodus.xs').read_bytes())
-            self.assertEqual(z.read('Exodus/resources/_common/random-map-scripts/Exodus.rms'),self.rms.encode())
             self.assertFalse(any('.reference/' in name or '.tools/' in name or '__pycache__' in name for name in z.namelist()))
             self.assertEqual(sum(name.endswith('.wem') for name in z.namelist()),12)
         expected=(ROOT/'dist/SHA256SUMS').read_text().split()[0]

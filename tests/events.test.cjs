@@ -9,10 +9,11 @@ const layout=JSON.parse(fs.readFileSync(path.join(__dirname,'../docs/layout.json
 const kinds={gold:66,stone:102,berries:59,sheep:594,boar:48,deer:65,acacia:1063,
   bush:1360,gate:1323,torch:499,wall:117,relic:285,fish:458,mountain:1048,rock:623,flowers:334};
 
-test('presentation upgrade preserves the complete 0.1.0 authored gameplay layout',()=>{
+test('damage-only layout contains no sea barriers',()=>{
+  assert.equal(layout.objects.filter(o=>o.kind==="gate").length,0);
   const copy=structuredClone(layout);delete copy.version;
-  const digest=require('node:crypto').createHash('sha256').update(JSON.stringify(copy)).digest('hex');
-  assert.equal(digest,'4fa292471633552f4724a26d53ea2ec14ebf45a98cc89bf904b89eca65385342');
+  assert.equal(require("node:crypto").createHash("sha256").update(JSON.stringify(copy)).digest("hex"),
+    "aeeb827a64d299b932d781e0366d323505ad68d8acbc45e3cb36aceba009d1fd");
 });
 
 test('numeric cue IDs preserve every global audio filename and reset after flush',()=>{
@@ -113,8 +114,8 @@ test('initialization accepts two non-Gaia players and rejects other player count
 
 test('initialization waits; missing, duplicate, or wrong-player landmarks fail visibly',()=>{
   const late=world({spawn:false});late.tick(1);assert.equal(late.value('exReady'),false);late.landmarks();late.tick(2);assert.equal(late.value('exReady'),true);
-  const missing=world();const id=[...missing.units.values()].find(u=>u.object===1323).id;missing.units.delete(id);missing.run(1,10);assert.equal(missing.disabled,true);assert.match(missing.messages.at(-1).message,/INITIALIZATION FAILED/);
-  const dup=world();const gates=[...dup.units.values()].filter(u=>u.object===1323);gates[1].x=gates[0].x;gates[1].y=gates[0].y;dup.run(1,10);assert.equal(dup.disabled,true);
+  const missing=world();const id=[...missing.units.values()].find(u=>u.object===1360).id;missing.units.delete(id);missing.run(1,10);assert.equal(missing.disabled,true);assert.match(missing.messages.at(-1).message,/INITIALIZATION FAILED/);
+  const dup=world();const gates=[...dup.units.values()].filter(u=>u.object===1360);gates[1].x=gates[0].x;gates[1].y=gates[0].y;dup.run(1,10);assert.equal(dup.disabled,true);
   const wrong=world({players:5});wrong.run(1,10);assert.equal(wrong.disabled,true);
 });
 
@@ -124,21 +125,21 @@ test('diagnostic build reports every initialization rejection with actual values
     [world({height:144}),/Map=120x144; expected 120x120/],
     [world({players:3}),/Players=3; expected 2 excluding Gaia/]
   ];
-  for(const [object,pattern] of [[1323,/sea barriers \(1323\)=39; expected 40/],[117,/walls \(117\)=63; expected 64/],[1360,/shrubs \(1360\)=1; expected 2/]]) {
+  for(const [object,pattern] of [[117,/walls \(117\)=63; expected 64/],[1360,/shrubs \(1360\)=1; expected 2/]]) {
     const w=world();w.units.delete([...w.units.values()].find(u=>u.object===object).id);cases.push([w,pattern]);
   }
-  const misplaced=world();const gate=[...misplaced.units.values()].find(u=>u.object===1323);gate.x=54.5;
-  cases.push([misplaced,/Landmark object=1323; ref=\d+; x=54.5; y=.*outside authored slots/]);
-  const duplicate=world();const gates=[...duplicate.units.values()].filter(u=>u.object===1323);
+  const misplaced=world();const gate=[...misplaced.units.values()].find(u=>u.object===1360);gate.x=54.5;
+  cases.push([misplaced,/Landmark object=1360; ref=\d+; x=54.5; y=.*outside authored slots/]);
+  const duplicate=world();const gates=[...duplicate.units.values()].filter(u=>u.object===1360);
   gates[1].x=gates[0].x;gates[1].y=gates[0].y;
-  cases.push([duplicate,/Duplicate landmark object=1323; slot=\d+; refs=\d+,\d+/]);
+  cases.push([duplicate,/Duplicate landmark object=1360; slot=\d+; refs=\d+,\d+/]);
   for(const [w,pattern] of cases) {
     w.run(1,9);
     assert.equal(w.messages.length,1);
-    assert.match(w.messages[0].message,/EXODUS XS BUILD: 2026-09-08 pillars-03/);
+    assert.match(w.messages[0].message,/EXODUS XS BUILD: 2026-09-08 hazard-01/);
     w.run(10,20);
     assert.equal(w.messages.filter(m=>m.message.includes('INITIALIZATION FAILED')).length,1);assert.equal(w.disabled,true);
-    assert.match(w.messages.at(-1).message,/INITIALIZATION FAILED \[pillars-03\]/);
+    assert.match(w.messages.at(-1).message,/INITIALIZATION FAILED \[hazard-01\]/);
     assert.match(w.messages.at(-1).message,pattern);
     assert.equal(w.value('exReady'),false);
     assert.equal(w.sounds.length,0);assert.equal(w.damage.length,0);
@@ -148,8 +149,8 @@ test('diagnostic build reports every initialization rejection with actual values
 test('reference registration succeeds when all Gaia queries are empty; allocates no retry arrays',()=>{
   const w=world();const arrays=w.arrays.size;w.tick(1);
   assert.equal(w.value('exReady'),true);
-  assert.match(w.messages[1].message,/Registered 40 sea barriers, 64 walls and 2 shrubs/);
-  for(const [name,object,size] of [['exGates',1323,40],['exWalls',117,64],['exShrubs',1360,2]]) {
+  assert.match(w.messages[1].message,/Registered 64 walls and 2 shrubs/);
+  for(const [name,object,size] of [['exWalls',117,64],['exShrubs',1360,2]]) {
     const ids=w.arrays.get(w.value(name));assert.equal(ids.length,size);assert.equal(new Set(ids).size,size);
     for(const id of ids){assert.equal(w.units.get(id).owner,0);assert.equal(w.units.get(id).object,object);}
   }
@@ -172,10 +173,10 @@ test('landmark scans reject moved, duplicated, missing and non-Gaia walls/shrubs
 });
 
 test('reference ceiling fails visibly for out-of-range landmarks without creating replacements',()=>{
-  const w=world();const gate=[...w.units.values()].find(u=>u.object===1323);
+  const w=world();const gate=[...w.units.values()].find(u=>u.object===1360);
   w.units.delete(gate.id);gate.id=5000;w.units.set(gate.id,gate);
   const before=JSON.stringify([...w.units]);w.run(1,20);
-  assert.equal(w.disabled,true);assert.match(w.messages.at(-1).message,/barriers \(1323\)=39.*higher refs not checked/);
+  assert.equal(w.disabled,true);assert.match(w.messages.at(-1).message,/shrubs \(1360\)=1.*higher refs not checked/);
   assert.equal(JSON.stringify([...w.units]),before);
 });
 
@@ -186,14 +187,11 @@ test('successful initialization emits build identifier once without failure diag
   assert.equal(w.value('exReady'),true);
 });
 
-test('sea parts in mirrored stages, opens at 12:20, warns 90s, restores at 18:00',()=>{
-  const w=world();w.tick(1);assert.equal(w.count(1323),40);
-  w.tick(660);assert.equal(w.timers.at(-1).seconds,80);
-  w.tick(720);assert.equal(w.count(1323),40);w.tick(729);assert.equal(w.count(1323),40);
-  w.tick(730);assert.equal(w.count(1323),20);w.tick(739);assert.equal(w.count(1323),20);
-  w.tick(740);assert.equal(w.count(1323),0);w.tick(990);assert.equal(w.timers.at(-1).seconds,90);
-  w.tick(1079);assert.equal(w.count(1323),0);w.tick(1080);assert.equal(w.count(1323),40);
-  w.tick(1820);assert.equal(w.count(1323),0);
+test('sea road stays barrier-free through two cycles and safe signal starts at 12:20',()=>{
+ const w=world();w.tick(1);
+ for(const t of [660,720,739,740,990,1079,1080,1820]) {w.tick(t);assert.equal(w.count(1323),0);}
+ assert.equal(w.value('exFailure'),false);
+ assert.ok(w.messages.some(m=>m.time===740&&m.message.includes('SEA ROAD IS SAFE')));
 });
 
 test('flood is precisely bounded; same damage for both players, never Gaia, ships, buildings or garrisoned units',()=>{
@@ -220,16 +218,15 @@ test('duplicate rule execution cannot double damage, rewards, or notifications',
   assert.deepEqual([w.units.get(id).hp,w.messages.length,w.scans,w.sounds.length],snapshot);
 });
 
-test('occupied barrier cells are not forcibly filled; retreat leaves a cell that safely restores',()=>{
-  const w=world();w.tick(1);w.tick(740);const id=w.add(83,55.5,58.5,1,904,100);
-  w.tick(1080);assert.equal(w.count(1323),39);assert.equal(w.units.get(id).hp,94);
-  w.units.get(id).y=43.5;w.tick(1081);assert.equal(w.count(1323),40);assert.equal(w.units.get(id).hp,94);
+test('returning water damages occupants without spawning an obstruction',()=>{
+ const w=world();w.tick(1);w.tick(740);const id=w.add(83,55.5,58.5,1,904,100);
+ w.tick(1080);assert.equal(w.count(1323),0);assert.equal(w.units.get(id).hp,94);
+ w.units.get(id).y=43.5;w.tick(1081);assert.equal(w.units.get(id).hp,94);
 });
 
-test('persistent barrier creation failure fails open and suspends damage, not silently asymmetric',()=>{
-  const w=world();w.tick(1);w.tick(740);w.block(({object})=>object===1323);w.run(1080,1199);
-  assert.equal(w.value('exFailure'),true);assert.equal(w.count(1323),0);assert.match(w.messages.at(-1).message,/INVALID/);
-  const id=w.add(83,60,50,1,904,100);w.tick(1200);assert.equal(w.units.get(id).hp,100);
+test('obsolete RMS with rocks is rejected with instructions to replace both scripts',()=>{
+ const w=world();w.add(1323,55.5,58.5);w.run(1,10);
+ assert.equal(w.disabled,true);assert.match(w.messages.at(-1).message,/Replace BOTH/);
 });
 
 test('either player can ignite either bush once, without consuming it or granting stats',()=>{
@@ -264,15 +261,15 @@ test('seven horns, then only original Gaia Jericho walls fall; player walls surv
 
 test('audio availability never changes simulation; particle arrays remain bounded over multiple cycles',()=>{
   const a=world({sound:true}),b=world({sound:false});a.run(1,2300);b.run(1,2300);
-  assert.equal(a.arrays.size,14);assert.equal(b.arrays.size,14);assert.ok(a.count(1308)<=50);
+  assert.equal(a.arrays.size,13);assert.equal(b.arrays.size,13);assert.ok(a.count(1308)<=50);
   assert.equal(a.count(1635),44);assert.ok(a.count(304)<=4);
   assert.deepEqual([...a.units.values()],[...b.units.values()]);assert.deepEqual(a.messages,b.messages);
 });
 
-test('long-running cycles recreate no duplicate sea gates or runaway effects',()=>{
+test('long-running cycles create no sea gates or runaway effects',()=>{
   const w=world();w.tick(1);for(let c=0;c<20;c++)for(const offset of [660,720,730,740,990,1080,1120])w.tick(offset+c*1080);
-  assert.equal(w.count(1323),40);assert.equal(w.count(1635),44);assert.ok(w.count(1308)<=50);
-  assert.equal(w.arrays.size,14);assert.equal(w.value('exFailure'),false);
+  assert.equal(w.count(1323),0);assert.equal(w.count(1635),44);assert.ok(w.count(1308)<=50);
+  assert.equal(w.arrays.size,13);assert.equal(w.value('exFailure'),false);
 });
 
 test('30s and 10s safety reminders fire once per cycle; late resume emits only urgent reminder',()=>{
@@ -369,11 +366,10 @@ test('partial native walls are never supplemented and missing markers do not tri
   }
 });
 
-test('query returning zero cannot alias gate storage or suppress flood damage',()=>{
-  const w=world({queryReturnZero:true});w.tick(1);
-  const ids=[...w.arrays.get(w.value('exGates'))];w.add(83,57.5,50.5,1,904,100);
-  w.tick(2);assert.deepEqual([...w.arrays.get(w.value('exGates'))],ids);
-  w.tick(740);assert.equal(w.count(1323),0);assert.equal(w.value('exOpenAnnounced'),true);
+test('query returning zero cannot alias wall storage or suppress flood damage',()=>{
+ const w=world({queryReturnZero:true});w.tick(1);
+ const ids=[...w.arrays.get(w.value('exWalls'))];const id=w.add(83,57.5,50.5,1,904,100);
+ w.tick(2);assert.deepEqual([...w.arrays.get(w.value('exWalls'))],ids);assert.equal(w.units.get(id).hp,94);
 });
 test('empty queries fall back to reference getters for both players with normalized land classes',()=>{
   const w=world({queriesEmpty:true});w.tick(1);
@@ -383,13 +379,14 @@ test('empty queries fall back to reference getters for both players with normali
   assert.equal(w.units.get(ship).hp,100);assert.equal(w.units.get(gaia).hp,100);
   w.tick(740);assert.equal(w.units.get(a).hp,94);
 });
-test('failed removals preserve rock references and never announce an open crossing',()=>{
-  const w=world({removeFails:true});w.tick(1);const ids=[...w.arrays.get(w.value('exGates'))];
-  w.run(740,742);
-  assert.equal(w.value('exFailure'),true);assert.equal(w.count(1323),40);
-  assert.deepEqual([...w.arrays.get(w.value('exGates'))],ids);
-  assert.equal(w.messages.some(m=>m.message.includes('THE SEA ROAD IS OPEN')),false);
-  assert.match(w.messages.at(-1).message,/NOT certified open/);
+test('sea hazard works without scenery removal and parting stays dangerous until safe signal',()=>{
+ const w=world({removeFails:true});w.tick(1);
+ const id=w.add(83,57.5,50.5,1,904,100);
+ for(const t of [719,720,739])w.tick(t);
+ assert.equal(w.units.get(id).hp,82);
+ w.tick(740);w.tick(1079);assert.equal(w.units.get(id).hp,82);
+ w.tick(1080);assert.equal(w.units.get(id).hp,76);
+ assert.equal(w.value('exFailure'),false);assert.equal(w.count(1323),0);
 });
 test('44 waterfall pieces form 22 mirrored pairs with tight along-bank spacing',()=>{
   const w=world();w.tick(1);w.tick(740);

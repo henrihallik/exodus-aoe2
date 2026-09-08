@@ -1,13 +1,11 @@
 /* EXODUS: SEA OF SIGNS 0.2.2 - Tiny / 1v1 / standard Conquest.
    Biblical theatre, not a claim to reconstruct one historical location.
-   Sea = fixed non-buildable shallows + Gaia water curtains and barriers.
+   Sea = fixed non-buildable shallows + nonblocking Gaia water curtains.
    No terrain repaint API, data mod, player stat changes, or custom victory.
    Flood damage is an announced environmental hazard, not a unit-stat change.
    All simulation decisions are synchronized; audio return values are ignored.
 */
 
-const int exGateObject = 1323; // Gaia Rock 2; ONLY this scenery type is reskinned.
-const int exWaterGraphicObject = 896;
 const int exWaterEffect = 1635;
 const int exFire = 304;
 const int exCloud = 1308;
@@ -19,7 +17,6 @@ const int exPeriod = 1080;
 const int exFirstWind = 660;
 const float exFloodDps = 6.0;
 
-int exGates = -1;
 int exWalls = -1;
 int exWallAnchors = -1;
 int exShrubs = -1;
@@ -38,7 +35,6 @@ int exAttempts = 0;
 int exLastTick = -1;
 int exLastHorn = -1;
 int exLastPillar = -1;
-int exGateFailures = 0;
 int exOriginalMood = 0;
 bool exReady = false;
 bool exJerichoFallen = false;
@@ -51,10 +47,8 @@ int exQuietUntil = 0;
 int exPendingPriority = 0;
 int exPendingCue = 0; // Numeric ID: avoid global string initialization quirks.
 int exAmbientPass = 0;
-int exOpeningFailures = 0;
 int exRefScanLimit = 4096;
 bool exQueryFallbackNotice = false;
-bool exOpenAnnounced = false;
 
 vector exPoint(float x = 0.0, float y = 0.0, float z = 0.0) {
     return (xsVectorSet(x, y, z));
@@ -75,15 +69,6 @@ bool exInSea(vector p = vector(-1, -1, -1)) {
     float x = xsVectorGetX(p);
     float y = xsVectorGetY(p);
     return ((x >= 55.0) && (x < 65.0) && (y >= 44.0) && (y < 76.0));
-}
-
-int exGateSlot(vector p = vector(-1, -1, -1)) {
-    float x = xsVectorGetX(p);
-    float y = xsVectorGetY(p);
-    if ((x >= 55.0) && (x < 65.0) && (y >= 58.0) && (y < 62.0)) {
-        return ((exFloor(y) - 58) * 10 + exFloor(x) - 55);
-    }
-    return (-1);
 }
 
 /* Exact integer schedule; returning to this function after a load does not
@@ -242,15 +227,6 @@ void exSafetyWarnings(int now = 0) {
 
 void exConfigureGaia() {
     // Only unused-by-this-map Gaia scenery definitions are affected.
-    xsEffectAmount(cGaiaSetAttribute, exGateObject, cUnitSizeX, 0.5, 0);
-    xsEffectAmount(cGaiaSetAttribute, exGateObject, cUnitSizeY, 0.5, 0);
-    xsEffectAmount(cGaiaSetAttribute, exGateObject, cObstructionType, 2, 0);
-    xsEffectAmount(cGaiaSetAttribute, exGateObject, cBlockageClass, 6, 0);
-    xsEffectAmount(cGaiaSetAttribute, exGateObject, cSelectionEffect, 2, 0);
-    float waterGraphic = xsGetObjectAttribute(0, exWaterGraphicObject, cStandingGraphic);
-    if (waterGraphic >= 0.0) {
-        xsEffectAmount(cGaiaSetAttribute, exGateObject, cStandingGraphic, waterGraphic, 0);
-    }
     xsEffectAmount(cGaiaSetAttribute, exWaterEffect, cObstructionType, 4, 0);
     xsEffectAmount(cGaiaSetAttribute, exWaterEffect, cUnitSizeX, 0.0, 0);
     xsEffectAmount(cGaiaSetAttribute, exWaterEffect, cUnitSizeY, 0.0, 0);
@@ -282,39 +258,6 @@ void exCleanParticles(int now = 0) {
     }
 }
 
-bool exClearGates(bool outsideOnly = false) {
-    bool cleared = true;
-    for (i = 0; < 40) {
-        if ((outsideOnly == false) || (i < 10) || (i >= 30)) {
-            int id = xsArrayGetInt(exGates, i);
-            if (exOwnScenery(id, exGateObject)) { xsRemoveUnit(id); }
-            if (xsDoesUnitExist(id)) { cleared = false; }
-            else { xsArraySetInt(exGates, i, -1); }
-        }
-    }
-    return (cleared);
-}
-
-bool exRestoreGates() {
-    bool complete = true;
-    for (i = 0; < 40) {
-        int id = xsArrayGetInt(exGates, i);
-        if (xsDoesUnitExist(id) && (exOwnScenery(id, exGateObject) == false)) {
-            complete = false; // Never replace a live mismatched reference.
-        } else if (exOwnScenery(id, exGateObject) == false) {
-            int row = exFloor(0.1 * i);
-            int col = i % 10;
-            // Never force an obstruction underneath a player's unit.
-            int made = xsCreateUnit(exGateObject, 0,
-                exPoint(55.5 + col, 58.5 + row), false, false, true);
-            xsArraySetInt(exGates, i, made);
-            if (exOwnScenery(made, exGateObject) == false) { complete = false; }
-            else { if (exGateSlot(xsGetUnitPosition(made)) != i) { complete = false; } }
-        }
-    }
-    return (complete);
-}
-
 void exMoveCurtains(int now = 0) {
     float opening = 0.0;
     float stageTime = (now - exFirstWind) % exPeriod;
@@ -342,26 +285,26 @@ void exSea(int now = 0) {
         exPhase = phase;
         if (phase == 0) {
             xsSetColorMood(cColorMoodDesert, 12);
-            exNotice("EXODUS: The sea is closed. The marked seabed is dangerous; both coastal roads remain open.");
+            exNotice("EXODUS: SEA ROAD DANGEROUS: 6 HP/second to land units. No physical barrier; crossing is at your own risk. Coastal roads stay safe.");
             int wait = exFirstWind - now;
             if (now >= exFirstWind) { wait = exPeriod - (now - exFirstWind) % exPeriod; }
             exTimer("East wind in %d", wait);
         }
         if (phase == 1) {
             xsSetColorMood(cColorMoodEvening, 20);
-            exNotice("EXODUS: THE EAST WIND. The public timer counts down to the usable crossing; wait for the OPEN signal.");
+            exNotice("EXODUS: THE EAST WIND. The public timer counts down to the safe crossing; damage continues until the SAFE signal.");
             exTimer("Sea crossing opens in %d", 80);
             exCue("exodus_wind");
         }
         if (phase == 2) {
-            exNotice("EXODUS: THE WATERS DIVIDE. Watch the water curtains withdraw; wait for the OPEN signal and countdown.");
+            exNotice("EXODUS: THE WATERS DIVIDE. Watch the water curtains withdraw; damage continues until the SAFE signal.");
             exCue("exodus_parting");
         }
         if (phase == 3) {
-            exOpeningFailures = 0;
-            exOpenAnnounced = false;
-            exGateFailures = 0;
             xsSetColorMood(cColorMoodDesert, 12);
+            exNotice("EXODUS: THE SEA ROAD IS SAFE. Flood damage is off until the waters return. Both armies may cross.");
+            exTimer("WATERS RETURN in %d", 420 - (now - exFirstWind) % exPeriod);
+            exCue("exodus_open");
         }
         if (phase == 4) {
             xsSetColorMood(cColorMoodEvening, 15);
@@ -376,41 +319,7 @@ void exSea(int now = 0) {
             exCue("exodus_flood");
         }
     }
-    if ((phase == 3) || (phase == 4)) {
-        if (exClearGates()) {
-            if (exOpenAnnounced == false) {
-                exOpenAnnounced = true;
-                exNotice("EXODUS: THE SEA ROAD IS OPEN. All tracked barriers verified removed. Both armies may cross.");
-                exTimer("WATERS RETURN in %d", 1080 - ((now - 660) % exPeriod + 660));
-                exCue("exodus_open");
-            }
-        } else {
-            exOpeningFailures = exOpeningFailures + 1;
-            if (exOpeningFailures >= 3) {
-                exFailure = true;
-                xsClearTimer(710);
-                exNotice("EXODUS pillars-03: Barrier removal was not confirmed. Events suspended. Crossing is NOT certified open. INVALID for competition.");
-                return;
-            }
-        }
-    }
     exSafetyWarnings(now);
-    if (phase == 2) {
-        if ((now - exFirstWind) % exPeriod >= 70) { bool outerCleared = exClearGates(true); }
-    }
-    if ((phase == 0) || (phase == 1) || (phase == 5)) {
-        if (exRestoreGates() == false) { exGateFailures = exGateFailures + 1; }
-        else { exGateFailures = 0; }
-        // A broken collision implementation must not silently create a new
-        // competitive ruleset. Fail open, stop all hazards, announce invalid.
-        if (exGateFailures >= 120) {
-            exFailure = true;
-            bool cleared = exClearGates();
-            xsClearTimer(710);
-            if (cleared) { exNotice("EXODUS: Sea barriers could not restore for 120 seconds. Events suspended; tracked barriers verified removed. INVALID for competition."); }
-            else { exNotice("EXODUS: Sea barriers could not restore for 120 seconds. Events suspended; barriers remain or could not be verified. Crossing is NOT certified open. INVALID for competition."); }
-        }
-    }
     exMoveCurtains(now);
 }
 
@@ -422,7 +331,7 @@ void exVisitLandUnit(int id = -1, int now = 0) {
     if (klass < 900) { klass = klass + 900; }
     if (exLandClass(klass) == false) { return; }
     if (xsGetGarrisonedInUnitId(id) >= 0) { return; }
-    bool dangerous = ((exPhase == 0) || (exPhase == 1) || (exPhase == 5));
+    bool dangerous = ((exPhase == 0) || (exPhase == 1) || (exPhase == 2) || (exPhase == 5));
                             vector p = xsGetUnitPosition(id);
                             if (dangerous && exInSea(p)) {
                                 float hp = xsGetUnitHitpoints(id) - exFloodDps;
@@ -432,7 +341,7 @@ void exVisitLandUnit(int id = -1, int now = 0) {
                                     if (xsGetUnitHitpoints(id) > hp + 0.1) {
                                         exFailure = true;
                                         xsClearTimer(710);
-                                        exNotice("EXODUS pillars-03: Flood HP change failed verification. Events suspended; INVALID for competition.");
+                                        exNotice("EXODUS hazard-01: Flood HP change failed verification. Events suspended; INVALID for competition.");
                                         return;
                                     }
                                 }
@@ -490,7 +399,7 @@ void exSurveyLandUnits(int now = 0) {
                     if (xsGetUnitOwner(ref) == player) {
                         if (exQueryFallbackNotice == false) {
                             exQueryFallbackNotice = true;
-                            exNotice("EXODUS pillars-03: Empty player query; using reference scan for unit effects.");
+                            exNotice("EXODUS hazard-01: Empty player query; using reference scan for unit effects.");
                         }
                         exVisitLandUnit(ref, now);
                         if (exFailure) { return; }
@@ -627,7 +536,7 @@ void exJericho(int now = 0) {
             if (now >= 1457) {
                 exFailure = true;
                 xsClearTimer(710);
-                exNotice("EXODUS pillars-03: Jericho wall removal unconfirmed. Events suspended; INVALID for competition.");
+                exNotice("EXODUS hazard-01: Jericho wall removal unconfirmed. Events suspended; INVALID for competition.");
             }
             return;
         }
@@ -644,7 +553,7 @@ void exJericho(int now = 0) {
 bool exInitReject(string detail = "") {
     // Report only on the final retry so delayed RMS placement does not spam chat.
     if (exAttempts >= 10) {
-        exNotice("EXODUS: INITIALIZATION FAILED [pillars-03]: " + detail);
+        exNotice("EXODUS: INITIALIZATION FAILED [hazard-01]: " + detail);
     }
     return (false);
 }
@@ -673,10 +582,8 @@ bool exInitialize() {
     }
     // Bounded reference scan, independently verified in the user's native test.
     // Missing landmarks above the scan ceiling fail closed, never get recreated.
-    for (i = 0; < 40) { xsArraySetInt(exGates, i, -1); }
     for (i = 0; < 64) { xsArraySetInt(exWalls, i, -1); xsArraySetInt(exWallAnchors, i, -1); }
     for (i = 0; < 2) { xsArraySetInt(exShrubs, i, -1); }
-    int gates = 0;
     int walls = 0;
     int anchors = 0;
     int shrubs = 0;
@@ -685,15 +592,13 @@ bool exInitialize() {
         if (xsDoesUnitExist(id)) {
             if (xsGetUnitOwner(id) == 0) {
                 int object = xsGetUnitObjectId(id);
-                if ((object == exGateObject) || (object == exWall) || (object == exBush) || (object == 499)) {
+                if ((object == 1323) && exInSea(xsGetUnitPosition(id))) {
+                    return (exInitReject("Old rock barriers found. Replace BOTH Exodus.rms and exodus.xs, then start a NEW match. Events disabled."));
+                }
+                if ((object == exWall) || (object == exBush) || (object == 499)) {
                     vector p = xsGetUnitPosition(id);
                     int slot = -1;
                     int target = -1;
-                    if (object == exGateObject) {
-                        gates = gates + 1;
-                        target = exGates;
-                        slot = exGateSlot(p);
-                    }
                     if (object == exWall) {
                         walls = walls + 1;
                         target = exWalls;
@@ -724,7 +629,6 @@ bool exInitialize() {
             }
         }
     }
-    if (gates != 40) { return (exInitReject("Gaia sea barriers (1323)=" + gates + "; expected 40. Scan refs 0..4095; higher refs not checked. Events disabled.")); }
     if ((walls != 64) && ((walls != 0) || (anchors != 64))) { return (exInitReject("Gaia walls (117)=" + walls + "; expected 64, or zero walls plus 64 setup torches. Setup torches=" + anchors + ". Replace both RMS and XS. Events disabled.")); }
     if (shrubs != 2) { return (exInitReject("Gaia burning-bush shrubs (1360)=" + shrubs + "; expected 2. Scan refs 0..4095; higher refs not checked. Events disabled.")); }
     if (invalid != "") { return (exInitReject(invalid + " Events disabled.")); }
@@ -757,10 +661,10 @@ bool exInitialize() {
             if (exWallSlot(xsGetUnitPosition(oldMarker)) == i) { xsRemoveUnit(oldMarker); }
         }
     }
-    exNotice("EXODUS pillars-03: Registered 40 sea barriers, 64 walls and 2 shrubs by reference ID; all authored slots verified.");
+    exNotice("EXODUS hazard-01: Registered 64 walls and 2 shrubs; damage-only sea road by reference ID; all authored slots verified.");
     exOriginalMood = xsGetColorMood();
     exConfigureGaia();
-    exNotice("EXODUS: SEA OF SIGNS. Tiny 1v1 Conquest. First sea crossing 12:20; flood 18:00; repeats every 18 minutes. Coastal roads NEVER close. Flooded seabed: 6 HP/second to land units.");
+    exNotice("EXODUS: SEA OF SIGNS. Tiny 1v1 Conquest. Sea road always passable; SAFE 12:20 to 18:00; repeats every 18 minutes. Coastal roads NEVER close. Flooded seabed: 6 HP/second to land units.");
     return (true);
 }
 
@@ -775,7 +679,7 @@ maxInterval 1
     exLastTick = now;
     if (exReady == false) {
         exAttempts = exAttempts + 1;
-        if (exAttempts == 1) { exNotice("EXODUS XS BUILD: 2026-09-08 pillars-03. Checking map initialization."); }
+        if (exAttempts == 1) { exNotice("EXODUS XS BUILD: 2026-09-08 hazard-01. Checking map initialization."); }
         exReady = exInitialize();
         if ((exReady == false) && (exAttempts >= 10)) {
             xsDisableSelf();
@@ -802,7 +706,6 @@ maxInterval 1
 void main() {
     exPendingCue = 0;
     exQuery = xsArrayCreateInt(0, -1, "exPlayerQuery");
-    exGates = xsArrayCreateInt(40, -1, "exGates");
     exWalls = xsArrayCreateInt(64, -1, "exWalls");
     exWallAnchors = xsArrayCreateInt(64, -1, "exWallAnchors");
     exShrubs = xsArrayCreateInt(2, -1, "exShrubs");
