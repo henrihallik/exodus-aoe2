@@ -322,7 +322,7 @@ void exMoveCurtains(int now = 0) {
     if (exPhase == 2) { opening = (stageTime - 60.0) / 20.0; }
     if (exPhase == 5) { opening = 1.0 - (stageTime - 420.0) / 40.0; }
     opening = opening * opening * (3.0 - 2.0 * opening);
-    for (i = 0; < 36) {
+    for (i = 0; < 44) {
         int side = i % 2;
         int row = exFloor(0.5 * i);
         float x = 58.5 - opening * 5.0;
