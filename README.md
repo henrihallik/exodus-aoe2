@@ -1,5 +1,7 @@
 # Exodus: Sea of Signs
 
+**Latest fix: walls-01 — replace BOTH loose RMS and XS files.** RMS now places nonblocking setup torches at the 64 authored wall tiles. XS creates both Jericho enclosures during initialization, removes only those setup torches after success, and rolls back newly created walls if either enclosure fails. Coastal torches and each enclosure's four gold tiles plus relic are unchanged. No new ZIP; native wall appearance/collision still needs verification. Generate loose scripts with `python3 tools/build.py --scripts-only`. Older notes below describe earlier builds.
+
 **Latest direct-download fix: refs-01.** Gaia landmarks are now registered through existing reference IDs instead of the lookup that returned zero in native testing. The startup message should say `Registered 40 sea barriers, 64 walls and 2 shrubs`. Counts and unique authored tile positions are checked before events start. Replace only the loose XS file; no new ZIP was created. This fix still needs native confirmation. Earlier diagnostic notes below are historical.
 
 Latest direct-download diagnostic: **diag-02**. On a sea-barrier count failure it reports both lookup argument orders, then independently samples existing reference IDs 0–4095 and prints up to two objects at the barrier footprint (ID, owner, object type, coordinates). This is read-only inspection, not an automatic repair; initialization safety checks stay enabled. Send the `QUERY`, `SAMPLE`, and `SCAN` chat lines. No new ZIP.

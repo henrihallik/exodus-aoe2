@@ -17,6 +17,14 @@ spec.loader.exec_module(build)
 
 
 class MapContract(unittest.TestCase):
+    def test_wall_setup_uses_point_markers_not_native_rms_wall_generation(self):
+        self.assertNotIn('create_object EX_WALL {', self.rms)
+        self.assertIn('create_object EX_TORCH { place_on_specific_land_id 511 set_gaia_object_only max_distance_to_players 0 ignore_terrain_restrictions }', self.rms)
+        self.assertEqual(self.rms, build.rms(self.layout))
+        walls=[o for o in self.objects if o['kind']=='wall']
+        self.assertEqual(len(walls),64)
+        self.assertEqual(sum(o['kind']=='gold' and o['role']=='jericho-reward' for o in self.objects),8)
+
     def test_xs_declarations_require_initializers_and_avoid_global_strings(self):
         build.validate_xs_source((ROOT/'src/exodus.xs').read_text())
         for bad in ('string pending;', 'void f() { int x; }', 'string pending = "";'):

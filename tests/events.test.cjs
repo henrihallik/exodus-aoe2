@@ -34,13 +34,13 @@ function translate(xs) {
 }
 
 // Native xsGetNumPlayers excludes Gaia; a standard 1v1 returns 2.
-function world({spawn=true,sound=true,players=2,width=120,height=120,objectFirst=false,gaiaQueryEmpty=true}={}) {
+function world({spawn=true,sound=true,players=2,width=120,height=120,objectFirst=false,gaiaQueryEmpty=true,wallMarkers=false}={}) {
   const arrays=new Map(),units=new Map(),messages=[],sounds=[],removed=[],damage=[],effects=[],moods=[],timers=[];
   let nextArray=0,nextUnit=1,now=0,disabled=false,scans=0,deny=()=>false;
   function add(object,x,y,owner=0,klass=911,hp=100,garrison=-1) {
     const id=nextUnit++;units.set(id,{id,object,x,y,z:0,owner,klass,hp,garrison,food:object===59?125:0});return id;
   }
-  function landmarks(){for(const o of layout.objects)add(kinds[o.kind],o.x+.5,o.y+.5);}
+  function landmarks(){for(const o of layout.objects)add(wallMarkers&&o.kind==='wall'?499:kinds[o.kind],o.x+.5,o.y+.5);}
   if(spawn)landmarks();
   function createArray(n,v){const id=nextArray++;arrays.set(id,Array(n).fill(v));return id;}
   const api={
@@ -68,7 +68,7 @@ function world({spawn=true,sound=true,players=2,width=120,height=120,objectFirst
     xsCreateUnit:(object,owner,p,foundation=true,play=true,collision=true)=>{
       assert.equal(owner,0,'events must never create player units');
       if(deny({object,owner,p,collision,now}))return -1;
-      if(collision&&[...units.values()].some(u=>Math.abs(u.x-p.x)<.8&&Math.abs(u.y-p.y)<.8))return -1;
+      if(collision&&[...units.values()].some(u=>u.object!==499&&Math.abs(u.x-p.x)<.8&&Math.abs(u.y-p.y)<.8))return -1;
       const made=add(object,p.x,p.y,owner);units.get(made).z=p.z;return made;
     },
     xsRemoveUnit:id=>{assert.equal(units.get(id).owner,0,'only tracked Gaia scenery/new manna may be removed');removed.push(id);return units.delete(id);},
@@ -134,10 +134,10 @@ test('diagnostic build reports every initialization rejection with actual values
   for(const [w,pattern] of cases) {
     w.run(1,9);
     assert.equal(w.messages.length,1);
-    assert.match(w.messages[0].message,/EXODUS XS BUILD: 2026-09-08 refs-01/);
+    assert.match(w.messages[0].message,/EXODUS XS BUILD: 2026-09-08 walls-01/);
     w.run(10,20);
     assert.equal(w.messages.filter(m=>m.message.includes('INITIALIZATION FAILED')).length,1);assert.equal(w.disabled,true);
-    assert.match(w.messages.at(-1).message,/INITIALIZATION FAILED \[refs-01\]/);
+    assert.match(w.messages.at(-1).message,/INITIALIZATION FAILED \[walls-01\]/);
     assert.match(w.messages.at(-1).message,pattern);
     assert.equal(w.value('exReady'),false);
     assert.equal(w.sounds.length,0);assert.equal(w.damage.length,0);
@@ -263,7 +263,7 @@ test('seven horns, then only original Gaia Jericho walls fall; player walls surv
 
 test('audio availability never changes simulation; particle arrays remain bounded over multiple cycles',()=>{
   const a=world({sound:true}),b=world({sound:false});a.run(1,2300);b.run(1,2300);
-  assert.equal(a.arrays.size,13);assert.equal(b.arrays.size,13);assert.ok(a.count(1308)<=48);
+  assert.equal(a.arrays.size,14);assert.equal(b.arrays.size,14);assert.ok(a.count(1308)<=48);
   assert.equal(a.count(1635),12);assert.ok(a.count(304)<=4);
   assert.deepEqual([...a.units.values()],[...b.units.values()]);assert.deepEqual(a.messages,b.messages);
 });
@@ -271,7 +271,7 @@ test('audio availability never changes simulation; particle arrays remain bounde
 test('long-running cycles recreate no duplicate sea gates or runaway effects',()=>{
   const w=world();w.tick(1);for(let c=0;c<20;c++)for(const offset of [660,720,730,740,990,1080,1120])w.tick(offset+c*1080);
   assert.equal(w.count(1323),40);assert.equal(w.count(1635),12);assert.ok(w.count(1308)<=48);
-  assert.equal(w.arrays.size,13);assert.equal(w.value('exFailure'),false);
+  assert.equal(w.arrays.size,14);assert.equal(w.value('exFailure'),false);
 });
 
 test('30s and 10s safety reminders fire once per cycle; late resume emits only urgent reminder',()=>{
@@ -343,4 +343,27 @@ test('curtain easing preserves endpoints and rotational pairing; transition mist
   w.tick(1080);
   const low=[...w.units.values()].filter(u=>u.object===1308&&u.z===.5);assert.equal(low.length,2);
   for(const u of low)assert.ok(u.x<55||u.x>=65);
+});
+
+test('wall markers stage exactly both enclosures and leave coastal torches and rewards unchanged',()=>{
+  const w=world({wallMarkers:true});const food=[...w.units.values()].filter(u=>[66,285].includes(u.object));
+  const torches=w.count(499);w.tick(1);
+  assert.equal(w.value('exReady'),true);assert.equal(w.count(117),64);assert.equal(w.count(499),torches-64);
+  assert.deepEqual([...w.units.values()].filter(u=>[66,285].includes(u.object)),food);
+  w.tick(2);assert.equal(w.count(117),64);
+  w.tick(1447);assert.equal(w.count(117),0);
+});
+test('blocked wall staging rolls back both sides and preserves all setup markers',()=>{
+  const w=world({wallMarkers:true});const torches=w.count(499);
+  w.block(({object,p})=>object===117&&p.x>100);w.run(1,10);
+  assert.equal(w.disabled,true);assert.equal(w.count(117),0);assert.equal(w.count(499),torches);
+  assert.match(w.messages.at(-1).message,/rolled back/);
+});
+test('partial native walls are never supplemented and missing markers do not trigger blind creation',()=>{
+  for(const partial of [false,true]) {
+    const w=world({wallMarkers:true});const mark=[...w.units.values()].find(u=>u.object===499&&w.value(`exWallSlot(vector(${u.x},${u.y},0))`)>=0);
+    if(partial)mark.object=117;else w.units.delete(mark.id);
+    const before=JSON.stringify([...w.units]);w.run(1,10);
+    assert.equal(w.disabled,true);assert.equal(JSON.stringify([...w.units]),before);
+  }
 });

@@ -2378,7 +2378,7 @@ create_object EX_RELIC { place_on_specific_land_id 506 set_gaia_object_only max_
 create_object EX_FISH { place_on_specific_land_id 507 set_gaia_object_only max_distance_to_players 0 ignore_terrain_restrictions }
 create_object EX_ACACIA { place_on_specific_land_id 508 set_gaia_object_only max_distance_to_players 0 ignore_terrain_restrictions }
 create_object EX_BUSH { place_on_specific_land_id 510 set_gaia_object_only max_distance_to_players 0 ignore_terrain_restrictions }
-create_object EX_WALL { place_on_specific_land_id 511 set_gaia_object_only max_distance_to_players 0 ignore_terrain_restrictions }
+create_object EX_TORCH { place_on_specific_land_id 511 set_gaia_object_only max_distance_to_players 0 ignore_terrain_restrictions }
 create_object EX_GATE { place_on_specific_land_id 512 set_gaia_object_only max_distance_to_players 0 ignore_terrain_restrictions }
 create_object EX_TORCH { place_on_specific_land_id 513 set_gaia_object_only max_distance_to_players 0 ignore_terrain_restrictions }
 create_object EX_ROCK { place_on_specific_land_id 514 set_gaia_object_only max_distance_to_players 0 ignore_terrain_restrictions }

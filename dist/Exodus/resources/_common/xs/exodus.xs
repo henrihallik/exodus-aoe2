@@ -21,6 +21,7 @@ const float exFloodDps = 6.0;
 
 int exGates = -1;
 int exWalls = -1;
+int exWallAnchors = -1;
 int exShrubs = -1;
 int exQuery = -1;
 int exEffects = -1;
@@ -560,7 +561,7 @@ void exJericho(int now = 0) {
 bool exInitReject(string detail = "") {
     // Report only on the final retry so delayed RMS placement does not spam chat.
     if (exAttempts >= 10) {
-        exNotice("EXODUS: INITIALIZATION FAILED [refs-01]: " + detail);
+        exNotice("EXODUS: INITIALIZATION FAILED [walls-01]: " + detail);
     }
     return (false);
 }
@@ -590,17 +591,18 @@ bool exInitialize() {
     // Bounded reference scan, independently verified in the user's native test.
     // Missing landmarks above the scan ceiling fail closed, never get recreated.
     for (i = 0; < 40) { xsArraySetInt(exGates, i, -1); }
-    for (i = 0; < 64) { xsArraySetInt(exWalls, i, -1); }
+    for (i = 0; < 64) { xsArraySetInt(exWalls, i, -1); xsArraySetInt(exWallAnchors, i, -1); }
     for (i = 0; < 2) { xsArraySetInt(exShrubs, i, -1); }
     int gates = 0;
     int walls = 0;
+    int anchors = 0;
     int shrubs = 0;
     string invalid = "";
     for (id = 0; < 4096) {
         if (xsDoesUnitExist(id)) {
             if (xsGetUnitOwner(id) == 0) {
                 int object = xsGetUnitObjectId(id);
-                if ((object == exGateObject) || (object == exWall) || (object == exBush)) {
+                if ((object == exGateObject) || (object == exWall) || (object == exBush) || (object == 499)) {
                     vector p = xsGetUnitPosition(id);
                     int slot = -1;
                     int target = -1;
@@ -613,6 +615,12 @@ bool exInitialize() {
                         walls = walls + 1;
                         target = exWalls;
                         slot = exWallSlot(p);
+                    }
+                    if (object == 499) {
+                        slot = exWallSlot(p);
+                        if (slot < 0) { continue; } // Coastal torches are unrelated.
+                        anchors = anchors + 1;
+                        target = exWallAnchors;
                     }
                     if (object == exBush) {
                         shrubs = shrubs + 1;
@@ -634,10 +642,39 @@ bool exInitialize() {
         }
     }
     if (gates != 40) { return (exInitReject("Gaia sea barriers (1323)=" + gates + "; expected 40. Scan refs 0..4095; higher refs not checked. Events disabled.")); }
-    if (walls != 64) { return (exInitReject("Gaia walls (117)=" + walls + "; expected 64. Scan refs 0..4095; higher refs not checked. Events disabled.")); }
+    if ((walls != 64) && ((walls != 0) || (anchors != 64))) { return (exInitReject("Gaia walls (117)=" + walls + "; expected 64, or zero walls plus 64 setup torches. Setup torches=" + anchors + ". Replace both RMS and XS. Events disabled.")); }
     if (shrubs != 2) { return (exInitReject("Gaia burning-bush shrubs (1360)=" + shrubs + "; expected 2. Scan refs 0..4095; higher refs not checked. Events disabled.")); }
     if (invalid != "") { return (exInitReject(invalid + " Events disabled.")); }
-    exNotice("EXODUS refs-01: Registered 40 sea barriers, 64 walls and 2 shrubs by reference ID; all authored slots verified.");
+    if (walls == 0) {
+        // Stage BOTH enclosures. Roll back only newly created walls on failure.
+        bool complete = true;
+        for (i = 0; < 64) {
+            int marker = xsArrayGetInt(exWallAnchors, i);
+            vector wallPosition = xsGetUnitPosition(marker);
+            int made = xsCreateUnit(exWall, 0, wallPosition, false, false, true);
+            xsArraySetInt(exWalls, i, made);
+            if (exOwnScenery(made, exWall) == false) { complete = false; }
+            else {
+                if (exWallSlot(xsGetUnitPosition(made)) != i) { complete = false; }
+            }
+        }
+        if (complete == false) {
+            for (i = 0; < 64) {
+                int rollbackWall = xsArrayGetInt(exWalls, i);
+                if (exOwnScenery(rollbackWall, exWall)) { xsRemoveUnit(rollbackWall); }
+                xsArraySetInt(exWalls, i, -1);
+            }
+            return (exInitReject("Both wall enclosures could not be created safely. Newly created walls rolled back; events disabled."));
+        }
+    }
+    // Only remove verified authored setup torches after both enclosures exist.
+    for (i = 0; < 64) {
+        int oldMarker = xsArrayGetInt(exWallAnchors, i);
+        if (exOwnScenery(oldMarker, 499)) {
+            if (exWallSlot(xsGetUnitPosition(oldMarker)) == i) { xsRemoveUnit(oldMarker); }
+        }
+    }
+    exNotice("EXODUS walls-01: Registered 40 sea barriers, 64 walls and 2 shrubs by reference ID; all authored slots verified.");
     exOriginalMood = xsGetColorMood();
     exConfigureGaia();
     exNotice("EXODUS: SEA OF SIGNS. Tiny 1v1 Conquest. First sea crossing 12:20; flood 18:00; repeats every 18 minutes. Coastal roads NEVER close. Flooded seabed: 6 HP/second to land units.");
@@ -655,7 +692,7 @@ maxInterval 1
     exLastTick = now;
     if (exReady == false) {
         exAttempts = exAttempts + 1;
-        if (exAttempts == 1) { exNotice("EXODUS XS BUILD: 2026-09-08 refs-01. Checking map initialization."); }
+        if (exAttempts == 1) { exNotice("EXODUS XS BUILD: 2026-09-08 walls-01. Checking map initialization."); }
         exReady = exInitialize();
         if ((exReady == false) && (exAttempts >= 10)) {
             xsDisableSelf();
@@ -681,6 +718,7 @@ void main() {
     exPendingCue = 0;
     exGates = xsArrayCreateInt(40, -1, "exGates");
     exWalls = xsArrayCreateInt(64, -1, "exWalls");
+    exWallAnchors = xsArrayCreateInt(64, -1, "exWallAnchors");
     exShrubs = xsArrayCreateInt(2, -1, "exShrubs");
     exEffects = xsArrayCreateInt(exPoolSize, -1, "exEffects");
     exExpires = xsArrayCreateInt(exPoolSize, 0, "exExpires");

@@ -1,5 +1,13 @@
 # Validation record — 0.2.2
 
+## Wall placement correction — walls-01
+
+The user confirmed no visible walls around either coastal 2x2 gold pile and relic; refs-01 found zero Gaia walls. The RMS guide's Walls section documents special enclosure behavior using min/max distance, unlike ordinary point objects. Our prior zero-distance, per-tile `create_object EX_WALL` placement was therefore not a reliable method. The alpha preview explicitly does not simulate special wall placement. Root-cause inference: native wall-generation semantics, not established by an engine trace.
+
+The new RMS substitutes nonblocking torch 499 at the same 64 authored wall anchors (land ID 511); unrelated coastal torches remain unchanged. XS scans and validates unique marker slots. If there are zero actual walls and exactly 64 valid markers, it stages 64 Gaia stone walls with collision checking at those positions. Only successful creation of both enclosures allows marker removal and events. Failed staging removes only newly created Gaia walls and preserves markers for bounded initialization retries. Partial pre-existing wall sets are never supplemented; a complete verified set is reused without duplication. Counts, ownership, slot checks, and existing resource geometry remain intact. Steady-state storage is 14 arrays. New RMS and XS must be installed together.
+
+Local checks: 32 mocked event tests pass, including success, rollback, missing markers and partial pre-existing walls. The Python suite has 15 passing checks and one expected failure: historical ZIP/source equality, because the user explicitly requested no new ZIP. The new RMS contract test passes point-marker emission and eight total Jericho gold tiles. Both linters and script encoding/declaration checks pass. Native marker collision, wall graphics/connectivity and startup remain unverified. `--scripts-only` updates runnable files without making or changing any ZIP.
+
 ## Reference registration fix — refs-01
 
 Native diag-02 output reported both lookup orders returning zero, while scanning reference IDs 0–4095 found 40 Gaia object-1323 barriers and 40 crossing objects. Samples were reference 1875 at (55.5,58.5) and 1876 at (64.5,61.5), both owner 0, object 1323. That establishes the barriers exist in the tested generation, not the underlying API defect or behavior for player-unit queries.

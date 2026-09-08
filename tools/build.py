@@ -206,7 +206,10 @@ def rms(layout):
     for kind in OBJECTS:
         if not any(o['kind'] == kind for o in layout['objects']):
             continue
-        lines.append(f"create_object EX_{kind.upper()} {{ place_on_specific_land_id {LAND_IDS[kind]} set_gaia_object_only max_distance_to_players 0 ignore_terrain_restrictions }}")
+        # Native RMS walls use enclosure-generation semantics, not point placement.
+        # Place nonblocking torches at the exact wall anchors; XS stages real walls.
+        placed = "TORCH" if kind == "wall" else kind.upper()
+        lines.append(f"create_object EX_{placed} {{ place_on_specific_land_id {LAND_IDS[kind]} set_gaia_object_only max_distance_to_players 0 ignore_terrain_restrictions }}")
     lines += ["create_object VILLAGER { set_place_for_every_player min_distance_to_players 3 max_distance_to_players 5 }",
               "create_object SCOUT { set_place_for_every_player min_distance_to_players 6 max_distance_to_players 7 }",
               "if REGICIDE", "create_object KING { set_place_for_every_player min_distance_to_players 2 max_distance_to_players 4 }", "endif"]
@@ -281,7 +284,7 @@ def validate_xs_source(source):
         depth += line.count('{') - line.count('}')
 
 
-def build():
+def build(scripts_only=False):
     layout = make_layout()
     # Validate BOTH scripts before touching the runnable output/package.
     rms_data = ascii_script(rms(layout), "Exodus.rms")
@@ -294,6 +297,9 @@ def build():
     xpath.parent.mkdir(parents=True,exist_ok=True)
     rpath.write_bytes(rms_data)
     xpath.write_bytes(xs_data)
+    if scripts_only:
+        print("Updated loose RMS and XS only; no ZIP created.")
+        return layout
     (ROOT/"docs/layout.json").write_text(json.dumps(layout,separators=(",",":"))+"\n")
     (ROOT/"docs/atlas.svg").write_text(atlas(layout),encoding="utf-8")
     members = [rpath,xpath]
@@ -339,4 +345,7 @@ def build():
 
 
 if __name__ == "__main__":
-    build()
+    import argparse
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--scripts-only", action="store_true")
+    build(scripts_only=parser.parse_args().scripts_only)
