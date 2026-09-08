@@ -34,7 +34,7 @@ function translate(xs) {
 }
 
 // Native xsGetNumPlayers excludes Gaia; a standard 1v1 returns 2.
-function world({spawn=true,sound=true,players=2}={}) {
+function world({spawn=true,sound=true,players=2,width=120,height=120}={}) {
   const arrays=new Map(),units=new Map(),messages=[],sounds=[],removed=[],damage=[],effects=[],moods=[],timers=[];
   let nextArray=0,nextUnit=1,now=0,disabled=false,scans=0,deny=()=>false;
   function add(object,x,y,owner=0,klass=911,hp=100,garrison=-1) {
@@ -58,7 +58,7 @@ function world({spawn=true,sound=true,players=2}={}) {
       scans++;if(!arrays.has(id))id=nextArray++;
       arrays.set(id,[...units.values()].filter(u=>u.owner===owner&&(u.object===kind||u.klass===kind)).map(u=>u.id));return id;
     },
-    xsGetGameTime:()=>now,xsGetMapWidth:()=>120,xsGetMapHeight:()=>120,xsGetNumPlayers:()=>players,
+    xsGetGameTime:()=>now,xsGetMapWidth:()=>width,xsGetMapHeight:()=>height,xsGetNumPlayers:()=>players,
     xsDoesUnitExist:id=>units.has(id),xsGetUnitOwner:id=>units.get(id).owner,xsGetUnitObjectId:id=>units.get(id).object,
     xsGetUnitPosition:id=>{const u=units.get(id);assert.ok(u);return {x:u.x,y:u.y,z:u.z};},
     xsGetUnitHitpoints:id=>units.get(id).hp,xsGetGarrisonedInUnitId:id=>units.get(id).garrison,
@@ -114,6 +114,40 @@ test('initialization waits; missing, duplicate, or wrong-player landmarks fail v
   const missing=world();const id=[...missing.units.values()].find(u=>u.object===1323).id;missing.units.delete(id);missing.run(1,10);assert.equal(missing.disabled,true);assert.match(missing.messages.at(-1).message,/INITIALIZATION FAILED/);
   const dup=world();const gates=[...dup.units.values()].filter(u=>u.object===1323);gates[1].x=gates[0].x;gates[1].y=gates[0].y;dup.run(1,10);assert.equal(dup.disabled,true);
   const wrong=world({players:5});wrong.run(1,10);assert.equal(wrong.disabled,true);
+});
+
+test('diagnostic build reports every initialization rejection with actual values, only at final retry',()=>{
+  const cases=[
+    [world({width:144}),/Map=144x120; expected 120x120/],
+    [world({height:144}),/Map=120x144; expected 120x120/],
+    [world({players:3}),/Players=3; expected 2 excluding Gaia/]
+  ];
+  for(const [object,pattern] of [[1323,/sea barriers \(1323\)=39; expected 40/],[117,/walls \(117\)=63; expected 64/],[1360,/shrubs \(1360\)=1; expected 2/]]) {
+    const w=world();w.units.delete([...w.units.values()].find(u=>u.object===object).id);cases.push([w,pattern]);
+  }
+  const misplaced=world();const gate=[...misplaced.units.values()].find(u=>u.object===1323);gate.x=54.5;
+  cases.push([misplaced,/Barrier id=\d+ at x=54.5, y=.*expected x=\[55,65\), y=\[58,62\)/]);
+  const duplicate=world();const gates=[...duplicate.units.values()].filter(u=>u.object===1323);
+  gates[1].x=gates[0].x;gates[1].y=gates[0].y;
+  cases.push([duplicate,/Duplicate barrier slot=\d+; ids=\d+,\d+; x=.*Expected one per tile/]);
+  for(const [w,pattern] of cases) {
+    w.run(1,9);
+    assert.equal(w.messages.length,1);
+    assert.match(w.messages[0].message,/EXODUS XS BUILD: 2026-09-08 diag-01/);
+    w.run(10,20);
+    assert.equal(w.messages.length,2);assert.equal(w.disabled,true);
+    assert.match(w.messages[1].message,/INITIALIZATION FAILED \[diag-01\]/);
+    assert.match(w.messages[1].message,pattern);
+    assert.equal(w.value('exReady'),false);
+    assert.equal(w.sounds.length,0);assert.equal(w.damage.length,0);
+  }
+});
+
+test('successful initialization emits build identifier once without failure diagnostics',()=>{
+  const w=world();w.run(1,20);
+  assert.equal(w.messages.filter(m=>m.message.includes('XS BUILD:')).length,1);
+  assert.equal(w.messages.filter(m=>m.message.includes('INITIALIZATION FAILED')).length,0);
+  assert.equal(w.value('exReady'),true);
 });
 
 test('sea parts in mirrored stages, opens at 12:20, warns 90s, restores at 18:00',()=>{

@@ -1,5 +1,11 @@
 # Validation record — 0.2.2
 
+## Diagnostic direct-download update — diag-01
+
+The user reported another initialization failure after the player-count hotfix. The generic message cannot identify the remaining cause. This update announces `2026-09-08 diag-01` once on the first runtime tick and reports the first failing guard on the tenth/final attempt: map dimensions, non-Gaia player count, sea-barrier count, out-of-bounds barrier ID/coordinates, duplicate slot with both IDs/coordinates, wall count, or shrub count. No validation gate is relaxed and no event is enabled on failure. A standard-dataset selection is not separately detected; object checks are the actual guards.
+
+The Node suite now has 26 mocked tests, including all diagnostic branches, actual values, final-retry-only reporting, build identification, and successful initialization without failure notices. These remain mocks, not native engine validation. Source and downloadable XS must match byte for byte. Existing ZIPs are unchanged and do not include these diagnostics.
+
 ## Direct-download hotfix — 2026-09-08
 
 The user's next native test reached the scripted initialization-failure message, demonstrating execution past compilation, but not working events. The initialization guard incorrectly expected three players including Gaia. [Forgotten Empires documents that `xsGetNumPlayers` excludes Gaia](https://www.forgottenempires.net/age-of-empires-ii-definitive-edition/xs-scripting-in-age-of-empires-ii-definitive-edition); a 1v1 returns two. Both source and direct-download XS now require two. The mocked API had repeated the same mistaken assumption and is corrected, with an explicit two-player acceptance/other-count rejection regression test. The updated Node suite has 24 tests. Native initialization and subsequent events still need confirmation.

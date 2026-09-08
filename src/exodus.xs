@@ -557,26 +557,42 @@ void exJericho(int now = 0) {
     }
 }
 
+bool exInitReject(string detail = "") {
+    // Report only on the final retry so delayed RMS placement does not spam chat.
+    if (exAttempts >= 10) {
+        exNotice("EXODUS: INITIALIZATION FAILED [diag-01]: " + detail);
+    }
+    return (false);
+}
+
 bool exInitialize() {
     // xsGetNumPlayers excludes Gaia: a 1v1 match returns 2, not 3.
-    if ((xsGetMapWidth() != 120) || (xsGetMapHeight() != 120) || (xsGetNumPlayers() != 2)) {
-        return (false);
+    if ((xsGetMapWidth() != 120) || (xsGetMapHeight() != 120)) {
+        return (exInitReject("Map=" + xsGetMapWidth() + "x" + xsGetMapHeight() + "; expected 120x120 (Tiny). Events disabled."));
+    }
+    if (xsGetNumPlayers() != 2) {
+        return (exInitReject("Players=" + xsGetNumPlayers() + "; expected 2 excluding Gaia. Events disabled."));
     }
     exQuery = xsGetPlayerUnitIds(0, exGateObject, exQuery);
     int count = xsArrayGetSize(exQuery);
-    if (count != 40) { return (false); }
+    if (count != 40) { return (exInitReject("Gaia sea barriers (1323)=" + count + "; expected 40. Events disabled.")); }
     for (i = 0; < 40) { xsArraySetInt(exGates, i, -1); }
     for (i = 0; < count) {
         int id = xsArrayGetInt(exQuery, i);
-        int slot = exGateSlot(xsGetUnitPosition(id));
-        if (slot < 0) { return (false); }
-        if (xsArrayGetInt(exGates, slot) >= 0) { return (false); }
+        vector position = xsGetUnitPosition(id);
+        int slot = exGateSlot(position);
+        if (slot < 0) {
+            return (exInitReject("Barrier id=" + id + " at x=" + xsVectorGetX(position) + ", y=" + xsVectorGetY(position) + "; expected x=[55,65), y=[58,62). Events disabled."));
+        }
+        if (xsArrayGetInt(exGates, slot) >= 0) {
+            return (exInitReject("Duplicate barrier slot=" + slot + "; ids=" + xsArrayGetInt(exGates, slot) + "," + id + "; x=" + xsVectorGetX(position) + ", y=" + xsVectorGetY(position) + ". Expected one per tile. Events disabled."));
+        }
         xsArraySetInt(exGates, slot, id);
     }
     exWalls = xsGetPlayerUnitIds(0, exWall, exWalls);
-    if (xsArrayGetSize(exWalls) != 64) { return (false); }
+    if (xsArrayGetSize(exWalls) != 64) { return (exInitReject("Gaia walls (117)=" + xsArrayGetSize(exWalls) + "; expected 64. Events disabled.")); }
     exQuery = xsGetPlayerUnitIds(0, exBush, exQuery);
-    if (xsArrayGetSize(exQuery) != 2) { return (false); }
+    if (xsArrayGetSize(exQuery) != 2) { return (exInitReject("Gaia burning-bush shrubs (1360)=" + xsArrayGetSize(exQuery) + "; expected 2. Events disabled.")); }
     exOriginalMood = xsGetColorMood();
     exConfigureGaia();
     exNotice("EXODUS: SEA OF SIGNS. Tiny 1v1 Conquest. First sea crossing 12:20; flood 18:00; repeats every 18 minutes. Coastal roads NEVER close. Flooded seabed: 6 HP/second to land units.");
@@ -594,9 +610,9 @@ maxInterval 1
     exLastTick = now;
     if (exReady == false) {
         exAttempts = exAttempts + 1;
+        if (exAttempts == 1) { exNotice("EXODUS XS BUILD: 2026-09-08 diag-01. Checking map initialization."); }
         exReady = exInitialize();
         if ((exReady == false) && (exAttempts >= 10)) {
-            exNotice("EXODUS: INITIALIZATION FAILED. Requires Tiny, two players, standard dataset, and all authored landmarks. Do not count this generation; report the seed.");
             xsDisableSelf();
         }
         if (exReady == false) { return; }

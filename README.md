@@ -1,5 +1,7 @@
 # Exodus: Sea of Signs
 
+Diagnostic update: the direct-download XS prints `EXODUS XS BUILD: 2026-09-08 diag-01` on its first runtime tick. If initialization still fails, its final retry reports the first failed check with actual/expected dimensions, player count, landmark counts, or barrier coordinates/duplicate slot. Share that diagnostic message; event safety checks remain enabled. No ZIP was created for this update.
+
 Direct-download hotfix (2026-09-08): `main` fixes the 1v1 initialization player count. Download the updated [exodus.xs](dist/Exodus/resources/_common/xs/exodus.xs) as a raw file. Existing v0.2.2 ZIPs do not contain this fix; no new ZIP was created. Native event validation remains pending.
 
 **An epic biblical battlefield for AoE2 DE · Tiny · 1v1 · Conquest**
