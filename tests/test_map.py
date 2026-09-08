@@ -17,6 +17,21 @@ spec.loader.exec_module(build)
 
 
 class MapContract(unittest.TestCase):
+    def test_scripts_are_ascii_in_source_and_release(self):
+        xs=(ROOT/'src/exodus.xs').read_bytes()
+        self.assertTrue(xs.isascii())
+        self.assertTrue(self.rms.isascii())
+        with zipfile.ZipFile(ROOT/f'dist/Exodus-{build.VERSION}.zip') as z:
+            for name in z.namelist():
+                if name.endswith(('.xs','.rms')):
+                    self.assertTrue(z.read(name).isascii(),name)
+
+    def test_build_rejects_unicode_and_control_characters(self):
+        for bad in ('\u2014','\u201c','\u00e9','\ufeff','\x00','\x1a'):
+            with self.assertRaises(ValueError):
+                build.ascii_script('void main() { /* '+bad+' */ }','test.xs')
+        self.assertEqual(build.ascii_script('string s = "SAFE - %d";\r\n','test.xs'),b'string s = "SAFE - %d";\r\n')
+
     @classmethod
     def setUpClass(cls):
         cls.layout=build.make_layout()

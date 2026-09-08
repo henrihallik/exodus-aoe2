@@ -15,7 +15,7 @@ import shutil
 import zipfile
 
 ROOT = Path(__file__).resolve().parents[1]
-VERSION = "0.2.0"
+VERSION = "0.2.1"
 SIZE = 120
 STARTS = [(60, 24), (59, 95)]
 TERRAIN = {"sand": 14, "dirt": 6, "grass": 0, "water": 1, "beach": 2,
@@ -255,15 +255,30 @@ def atlas(layout):
     return "\n".join(out)
 
 
+def ascii_script(source, name):
+    """Reject unsafe source instead of silently replacing message contents."""
+    try:
+        data = source.encode("ascii")
+    except UnicodeEncodeError as error:
+        line = source.count("\n", 0, error.start) + 1
+        raise ValueError(f"{name}:{line}: game script must contain ASCII only") from error
+    if any(byte < 32 and byte not in (9, 10, 13) for byte in data):
+        raise ValueError(f"{name}: unsupported control character in game script")
+    return data
+
+
 def build():
     layout = make_layout()
+    # Validate BOTH scripts before touching the runnable output/package.
+    rms_data = ascii_script(rms(layout), "Exodus.rms")
+    xs_data = ascii_script((ROOT/"src/exodus.xs").read_text(encoding="utf-8"), "exodus.xs")
     mod = ROOT/"dist"/"Exodus"
     rpath = mod/"resources/_common/random-map-scripts/Exodus.rms"
     xpath = mod/"resources/_common/xs/exodus.xs"
     rpath.parent.mkdir(parents=True,exist_ok=True)
     xpath.parent.mkdir(parents=True,exist_ok=True)
-    rpath.write_text(rms(layout),encoding="utf-8")
-    shutil.copyfile(ROOT/"src/exodus.xs",xpath)
+    rpath.write_bytes(rms_data)
+    xpath.write_bytes(xs_data)
     (ROOT/"docs/layout.json").write_text(json.dumps(layout,separators=(",",":"))+"\n")
     (ROOT/"docs/atlas.svg").write_text(atlas(layout),encoding="utf-8")
     members = [rpath,xpath]

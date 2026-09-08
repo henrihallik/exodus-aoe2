@@ -1,10 +1,12 @@
-# Validation record — 0.2.0
+# Validation record — 0.2.1
 
-Date: 2026-09-06. Status: implemented playtest candidate. No native DE execution or multiplayer match has been performed here. This is not a competition-readiness certificate.
+Updated: 2026-09-08. Status: implemented playtest candidate. The user's native v0.1.0 test failed XS compilation: unterminated-string/token errors at lines 235–236, followed by an `exPoint` code-generation error. Both reported string lines contain UTF-8 em dashes. This strongly implicates encoding; the `exPoint` error may be cascading, but that is not confirmed without a new native test. No successful native execution is claimed.
+
+Version 0.2.1 replaces every non-ASCII character in XS with ASCII and validates both RMS and XS before writing runnable artifacts. Regression checks reject Unicode (including BOMs) and unsupported control bytes, and inspect the actual ZIP scripts. Earlier external lint/mock passes did not detect this native compatibility issue. The correction is packaged with the previously local v0.2.0 upgrade; the old release is preserved for traceability.
 
 ## Source and packaging checks
 
-- Python suite: 12 tests covering exact authored rotational symmetry, RMS coordinate reconstruction, resource counts, coastal connectivity, sea shortcut and exits, resource-cluster access, clear starts and manna gardens, package integrity, audio containers/headroom/cue coverage, and art-pack separation.
+- Python suite: 14 tests covering source/packaged script encoding, build rejection of unsafe characters, exact authored rotational symmetry, RMS coordinate reconstruction, resource counts, coastal connectivity, sea shortcut and exits, resource-cluster access, clear starts and manna gardens, package integrity, audio containers/headroom/cue coverage, and art-pack separation.
 - Node suite: 21 XS tests plus the authored-layout baseline check, executing the actual XS source translated into JavaScript with mocked documented APIs. Coverage includes phase boundaries, initialization failures, staged openings, repeated floods, damage exclusions, collision-safe barrier restoration, fail-open handling, bushes, paired manna rollback, original-wall-only removal, audio-independent simulation and bounded effects over 20 cycles. New checks cover warning reminders, cue priorities, paired/rate-limited positional ambience, countdown repair, fire recovery and eased curtain endpoints. The baseline check compares every authored terrain/resource/object position against 0.1.0, excluding only the version field.
 - These mocks are not an emulator: real unit classes, collision rules, graphics, deaths, pathfinding, synchronization and save/load must still be checked in DE.
 - XS lint: xs-check 0.2.29. RMS lint: rms-check 0.0.4 with the existing local compatibility patch for current DE syntax. That RMS checker is not an unmodified upstream release. Optional lint tools are external to this project's normal build and are not packaged.

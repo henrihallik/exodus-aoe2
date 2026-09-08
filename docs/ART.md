@@ -4,7 +4,7 @@ Created using the built-in image-generation tool, not Blender or a local model. 
 
 **Status: artwork study, not an installed/game-ready sprite.** Visual inspection shows an appropriate small living thorn bush with restrained flames, but some branches and silhouette details vary between frames. Native sprite conversion, palette/format selection, anchors, timing, standing-graphic mapping and engine testing remain pending. We do not claim a seamless loop. This art is deliberately excluded from the playable map's graphics folder; native bush/fire scenery remains the fallback.
 
-The separate `Exodus-Art-Study-0.2.0.zip` preserves the source, frames and this prompt for future work. No custom ordinary unit, civilization or gameplay data is included.
+The separate `Exodus-Art-Study-<version>.zip` preserves the source, frames and this prompt for future work. No custom ordinary unit, civilization or gameplay data is included.
 
 ## Generation prompt (built-in tool)
 

@@ -1,4 +1,4 @@
-/* EXODUS: SEA OF SIGNS 0.2.0 — Tiny / 1v1 / standard Conquest.
+/* EXODUS: SEA OF SIGNS 0.2.1 - Tiny / 1v1 / standard Conquest.
    Biblical theatre, not a claim to reconstruct one historical location.
    Sea = fixed non-buildable shallows + Gaia water curtains and barriers.
    No terrain repaint API, data mod, player stat changes, or custom victory.
@@ -197,7 +197,7 @@ void exRefreshTimer(int now = 0) {
     }
     if ((exPhase == 1) || (exPhase == 2)) { exTimer("Sea crossing opens in %d", 80 - t); }
     if (exPhase == 3) { exTimer("WATERS RETURN in %d", 420 - t); }
-    if (exPhase == 4) { exTimer("EVACUATE SEABED — %d", 420 - t); }
+    if (exPhase == 4) { exTimer("EVACUATE SEABED - %d", 420 - t); }
     if (exPhase == 5) { exTimer("Waters settling in %d", 460 - t); }
 }
 
@@ -210,12 +210,12 @@ void exSafetyWarnings(int now = 0) {
     // warning, never a burst of obsolete 30- and 10-second notices.
     if ((remaining <= 10) && (exWarningStage < 2)) {
         exWarningStage = 2;
-        exNotice("EXODUS: FINAL FLOOD WARNING — 10 SECONDS OR LESS. Leave the marked seabed NOW. Both coastal routes remain open.");
+        exNotice("EXODUS: FINAL FLOOD WARNING - 10 SECONDS OR LESS. Leave the marked seabed NOW. Both coastal routes remain open.");
         exCue("exodus_final_warning");
     } else {
         if ((remaining <= 30) && (exWarningStage < 1)) {
             exWarningStage = 1;
-            exNotice("EXODUS: FLOOD WARNING — 30 SECONDS OR LESS. Withdraw toward either bank; leave the marked seabed.");
+            exNotice("EXODUS: FLOOD WARNING - 30 SECONDS OR LESS. Withdraw toward either bank; leave the marked seabed.");
             exCue("exodus_warning");
         }
     }
@@ -342,7 +342,7 @@ void exSea(int now = 0) {
         if (phase == 4) {
             xsSetColorMood(cColorMoodEvening, 15);
             exNotice("EXODUS: FLOOD WARNING. Follow the evacuation countdown. Leave the marked seabed; flooded land units lose 6 HP per second.");
-            exTimer("EVACUATE SEABED — %d", 90);
+            exTimer("EVACUATE SEABED - %d", 90);
             exCue("exodus_warning");
         }
         if (phase == 5) {
