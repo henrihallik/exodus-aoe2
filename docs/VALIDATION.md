@@ -1,5 +1,13 @@
 # Validation record — 0.2.2
 
+## Reference registration fix — refs-01
+
+Native diag-02 output reported both lookup orders returning zero, while scanning reference IDs 0–4095 found 40 Gaia object-1323 barriers and 40 crossing objects. Samples were reference 1875 at (55.5,58.5) and 1876 at (64.5,61.5), both owner 0, object 1323. That establishes the barriers exist in the tested generation, not the underlying API defect or behavior for player-unit queries.
+
+Initialization now scans the same bounded reference range, tests existence and Gaia ownership before registration, and stores references in fixed arrays. It requires 40 unique barrier tile slots, 64 unique slots on the two authored wall perimeters, and the two exact shrub tiles. Counts, duplicate slots and wrong positions fail closed. Missing landmarks outside the scan ceiling also fail closed with an explicit range warning; no replacement objects are spawned. The range is not a global enumeration guarantee and cannot detect extra objects above 4095. Scanning stops after successful initialization or ten failed attempts. Shrub-fire maintenance uses registered original shrine references and rechecks existence, ownership, type and position rather than querying Gaia again. Player-unit queries are unchanged and remain a separate native validation item.
+
+The 29-test Node suite now defaults all Gaia queries to empty results to reproduce the observed failure. It passes registration, all existing event tests, wall/shrub count/ownership/position/duplicate rejection, no retry-array growth, and out-of-range failure without replacements. Steady-state storage is now 13 arrays, including two registered shrubs; no unbounded scan or allocation was added. XS lint, ASCII/declaration guards, source/download byte equality and diff checks pass. These are local checks, not native verification of refs-01. No ZIP or release archive was created or updated.
+
 ## Read-only lookup diagnostic — diag-02
 
 The native screenshot shows a central rock formation while diag-01 reports zero Gaia object 1323. This does not establish its exact object IDs or query semantics. On the final barrier-count failure, diag-02 compares `xsGetPlayerUnitIds(0,1323,array)` and `(1323,0,array)` using one scratch array. It independently scans reference IDs 0–4095 with existence checks before getters, reports matching Gaia 1323 counts and barrier-footprint counts, and prints at most two footprint samples with reference ID, owner, object ID, and coordinates. Higher reference IDs are explicitly not covered. No objects/attributes are changed by the diagnostic, no automatic convention is chosen, and failed initialization remains disabled. Existing normal initialization behavior is unchanged.

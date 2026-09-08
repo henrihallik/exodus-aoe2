@@ -34,7 +34,7 @@ function translate(xs) {
 }
 
 // Native xsGetNumPlayers excludes Gaia; a standard 1v1 returns 2.
-function world({spawn=true,sound=true,players=2,width=120,height=120,objectFirst=false}={}) {
+function world({spawn=true,sound=true,players=2,width=120,height=120,objectFirst=false,gaiaQueryEmpty=true}={}) {
   const arrays=new Map(),units=new Map(),messages=[],sounds=[],removed=[],damage=[],effects=[],moods=[],timers=[];
   let nextArray=0,nextUnit=1,now=0,disabled=false,scans=0,deny=()=>false;
   function add(object,x,y,owner=0,klass=911,hp=100,garrison=-1) {
@@ -57,7 +57,7 @@ function world({spawn=true,sound=true,players=2,width=120,height=120,objectFirst
     xsGetPlayerUnitIds:(owner,kind,id=-1)=>{
       if(objectFirst)[owner,kind]=[kind,owner];
       scans++;if(!arrays.has(id))id=nextArray++;
-      arrays.set(id,[...units.values()].filter(u=>u.owner===owner&&(u.object===kind||u.klass===kind)).map(u=>u.id));return id;
+      arrays.set(id,[...units.values()].filter(u=>!(gaiaQueryEmpty&&owner===0)&&u.owner===owner&&(u.object===kind||u.klass===kind)).map(u=>u.id));return id;
     },
     xsGetGameTime:()=>now,xsGetMapWidth:()=>width,xsGetMapHeight:()=>height,xsGetNumPlayers:()=>players,
     xsDoesUnitExist:id=>units.has(id),xsGetUnitOwner:id=>units.get(id).owner,xsGetUnitObjectId:id=>units.get(id).object,
@@ -127,53 +127,55 @@ test('diagnostic build reports every initialization rejection with actual values
     const w=world();w.units.delete([...w.units.values()].find(u=>u.object===object).id);cases.push([w,pattern]);
   }
   const misplaced=world();const gate=[...misplaced.units.values()].find(u=>u.object===1323);gate.x=54.5;
-  cases.push([misplaced,/Barrier id=\d+ at x=54.5, y=.*expected x=\[55,65\), y=\[58,62\)/]);
+  cases.push([misplaced,/Landmark object=1323; ref=\d+; x=54.5; y=.*outside authored slots/]);
   const duplicate=world();const gates=[...duplicate.units.values()].filter(u=>u.object===1323);
   gates[1].x=gates[0].x;gates[1].y=gates[0].y;
-  cases.push([duplicate,/Duplicate barrier slot=\d+; ids=\d+,\d+; x=.*Expected one per tile/]);
+  cases.push([duplicate,/Duplicate landmark object=1323; slot=\d+; refs=\d+,\d+/]);
   for(const [w,pattern] of cases) {
     w.run(1,9);
     assert.equal(w.messages.length,1);
-    assert.match(w.messages[0].message,/EXODUS XS BUILD: 2026-09-08 diag-02/);
+    assert.match(w.messages[0].message,/EXODUS XS BUILD: 2026-09-08 refs-01/);
     w.run(10,20);
     assert.equal(w.messages.filter(m=>m.message.includes('INITIALIZATION FAILED')).length,1);assert.equal(w.disabled,true);
-    assert.match(w.messages.at(-1).message,/INITIALIZATION FAILED \[diag-02\]/);
+    assert.match(w.messages.at(-1).message,/INITIALIZATION FAILED \[refs-01\]/);
     assert.match(w.messages.at(-1).message,pattern);
     assert.equal(w.value('exReady'),false);
     assert.equal(w.sounds.length,0);assert.equal(w.damage.length,0);
   }
 });
 
-test('lookup diagnostic distinguishes both API conventions without changing world state',()=>{
-  for(const objectFirst of [false,true]) {
-    const w=world({objectFirst});
-    const before=JSON.stringify([...w.units]);const effects=w.effects.length;const arrays=w.arrays.size;
-    w.value('exLookupDiagnostic()');
-    assert.match(w.messages[0].message,objectFirst ? /\(0,1323\)=0; \(1323,0\)=40/ : /\(0,1323\)=40; \(1323,0\)=0/);
-    assert.match(w.messages.at(-1).message,/Gaia object1323=40; crossing objects=40/);
-    assert.equal(w.messages.filter(m=>m.message.includes('SAMPLE:')).length,2);
-    assert.match(w.messages[1].message,/owner=0; object=1323; x=/);
-    assert.equal(JSON.stringify([...w.units]),before);
-    assert.equal(w.effects.length,effects);assert.equal(w.arrays.size,arrays+1);
-    assert.equal(w.removed.length,0);assert.equal(w.damage.length,0);assert.equal(w.sounds.length,0);
+test('reference registration succeeds when all Gaia queries are empty; allocates no retry arrays',()=>{
+  const w=world();const arrays=w.arrays.size;w.tick(1);
+  assert.equal(w.value('exReady'),true);
+  assert.match(w.messages[1].message,/Registered 40 sea barriers, 64 walls and 2 shrubs/);
+  for(const [name,object,size] of [['exGates',1323,40],['exWalls',117,64],['exShrubs',1360,2]]) {
+    const ids=w.arrays.get(w.value(name));assert.equal(ids.length,size);assert.equal(new Set(ids).size,size);
+    for(const id of ids){assert.equal(w.units.get(id).owner,0);assert.equal(w.units.get(id).object,object);}
+  }
+  // The one additional allocation is the normal player-unit query, not a Gaia query.
+  assert.equal(w.arrays.size,arrays+1);
+});
+
+test('landmark scans reject moved, duplicated, missing and non-Gaia walls/shrubs',()=>{
+  for(const object of [117,1360])for(const mode of ['moved','duplicate','owned','extra']) {
+    const w=world();const list=[...w.units.values()].filter(u=>u.object===object);
+    if(mode==='moved'){list[0].x=30.5;list[0].y=20.5;}
+    if(mode==='duplicate'){list[1].x=list[0].x;list[1].y=list[0].y;}
+    if(mode==='owned')list[0].owner=1;
+    if(mode==='extra')w.add(object,30.5,20.5);
+    const before=JSON.stringify([...w.units]);const arrays=w.arrays.size;
+    w.run(1,20);
+    assert.equal(w.disabled,true);assert.equal(w.value('exReady'),false);
+    assert.equal(w.arrays.size,arrays);assert.equal(JSON.stringify([...w.units]),before);
   }
 });
 
-test('reversed API failure runs diagnostic once and stays disabled without automatic repair',()=>{
-  const w=world({objectFirst:true});const before=JSON.stringify([...w.units]);
-  w.run(1,30);
-  assert.equal(w.disabled,true);assert.equal(w.value('exReady'),false);
-  assert.equal(w.messages.filter(m=>m.message.includes('QUERY:')).length,1);
-  assert.equal(w.messages.filter(m=>m.message.includes('SCAN refs')).length,1);
+test('reference ceiling fails visibly for out-of-range landmarks without creating replacements',()=>{
+  const w=world();const gate=[...w.units.values()].find(u=>u.object===1323);
+  w.units.delete(gate.id);gate.id=5000;w.units.set(gate.id,gate);
+  const before=JSON.stringify([...w.units]);w.run(1,20);
+  assert.equal(w.disabled,true);assert.match(w.messages.at(-1).message,/barriers \(1323\)=39.*higher refs not checked/);
   assert.equal(JSON.stringify([...w.units]),before);
-});
-
-test('independent diagnostic identifies unexpected object types and owners without guessing replacements',()=>{
-  const w=world({spawn:false});w.add(623,55.5,58.5,0);w.add(1323,56.5,58.5,1);
-  w.value('exLookupDiagnostic()');
-  assert.match(w.messages[1].message,/owner=0; object=623/);
-  assert.match(w.messages[2].message,/owner=1; object=1323/);
-  assert.match(w.messages.at(-1).message,/Gaia object1323=0; crossing objects=2/);
 });
 
 test('successful initialization emits build identifier once without failure diagnostics',()=>{
@@ -261,7 +263,7 @@ test('seven horns, then only original Gaia Jericho walls fall; player walls surv
 
 test('audio availability never changes simulation; particle arrays remain bounded over multiple cycles',()=>{
   const a=world({sound:true}),b=world({sound:false});a.run(1,2300);b.run(1,2300);
-  assert.equal(a.arrays.size,12);assert.equal(b.arrays.size,12);assert.ok(a.count(1308)<=48);
+  assert.equal(a.arrays.size,13);assert.equal(b.arrays.size,13);assert.ok(a.count(1308)<=48);
   assert.equal(a.count(1635),12);assert.ok(a.count(304)<=4);
   assert.deepEqual([...a.units.values()],[...b.units.values()]);assert.deepEqual(a.messages,b.messages);
 });
@@ -269,7 +271,7 @@ test('audio availability never changes simulation; particle arrays remain bounde
 test('long-running cycles recreate no duplicate sea gates or runaway effects',()=>{
   const w=world();w.tick(1);for(let c=0;c<20;c++)for(const offset of [660,720,730,740,990,1080,1120])w.tick(offset+c*1080);
   assert.equal(w.count(1323),40);assert.equal(w.count(1635),12);assert.ok(w.count(1308)<=48);
-  assert.equal(w.arrays.size,12);assert.equal(w.value('exFailure'),false);
+  assert.equal(w.arrays.size,13);assert.equal(w.value('exFailure'),false);
 });
 
 test('30s and 10s safety reminders fire once per cycle; late resume emits only urgent reminder',()=>{

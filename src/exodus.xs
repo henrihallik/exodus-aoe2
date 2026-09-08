@@ -21,6 +21,7 @@ const float exFloodDps = 6.0;
 
 int exGates = -1;
 int exWalls = -1;
+int exShrubs = -1;
 int exQuery = -1;
 int exEffects = -1;
 int exExpires = -1;
@@ -472,10 +473,9 @@ void exSceneryMaintenance(int now = 0) {
                 if (b == 1) { x = 73.5; y = 84.5; }
                 // The shrine must still exist at its original position.
                 bool present = false;
-                exQuery = xsGetPlayerUnitIds(0, exBush, exQuery);
-                int shrubs = xsArrayGetSize(exQuery);
-                for (j = 0; < shrubs) {
-                    vector p = xsGetUnitPosition(xsArrayGetInt(exQuery, j));
+                int shrine = xsArrayGetInt(exShrubs, b);
+                if (exOwnScenery(shrine, exBush)) {
+                    vector p = xsGetUnitPosition(shrine);
                     if ((exFloor(xsVectorGetX(p)) == exFloor(x)) && (exFloor(xsVectorGetY(p)) == exFloor(y))) { present = true; }
                 }
                 if (present) {
@@ -557,45 +557,26 @@ void exJericho(int now = 0) {
     }
 }
 
-void exLookupDiagnostic() {
-    // Read-only, once on final initialization failure. Reuse one scratch array.
-    // Conflicting references document opposite argument orders; do NOT select
-    // a runtime convention or enable events based on these probes.
-    int probe = -1;
-    probe = xsGetPlayerUnitIds(0, exGateObject, probe);
-    int playerFirst = xsArrayGetSize(probe);
-    probe = xsGetPlayerUnitIds(exGateObject, 0, probe);
-    int objectFirst = xsArrayGetSize(probe);
-    exNotice("EXODUS diag-02 QUERY: (0,1323)=" + playerFirst + "; (1323,0)=" + objectFirst + ". Expected 40 barriers.");
-    // Independent reference-ID scan: existence checked before every getter.
-    // This is a bounded sample, NOT a claim to enumerate every engine object.
-    int live = 0;
-    int gaiaRocks = 0;
-    int crossing = 0;
-    for (id = 0; < 4096) {
-        if (xsDoesUnitExist(id)) {
-            live = live + 1;
-            int owner = xsGetUnitOwner(id);
-            int object = xsGetUnitObjectId(id);
-            vector p = xsGetUnitPosition(id);
-            if ((owner == 0) && (object == exGateObject)) { gaiaRocks = gaiaRocks + 1; }
-            if (exGateSlot(p) >= 0) {
-                crossing = crossing + 1;
-                if (crossing <= 2) {
-                    exNotice("EXODUS diag-02 SAMPLE: ref=" + id + "; owner=" + owner + "; object=" + object + "; x=" + xsVectorGetX(p) + "; y=" + xsVectorGetY(p));
-                }
-            }
-        }
-    }
-    exNotice("EXODUS diag-02 SCAN refs 0..4095: live=" + live + "; Gaia object1323=" + gaiaRocks + "; crossing objects=" + crossing + ". Higher refs not scanned.");
-}
-
 bool exInitReject(string detail = "") {
     // Report only on the final retry so delayed RMS placement does not spam chat.
     if (exAttempts >= 10) {
-        exNotice("EXODUS: INITIALIZATION FAILED [diag-02]: " + detail);
+        exNotice("EXODUS: INITIALIZATION FAILED [refs-01]: " + detail);
     }
     return (false);
+}
+
+// Unique slots for both mirrored 9x9 Jericho perimeters.
+int exWallSlot(vector p = vector(-1, -1, -1)) {
+    int x = exFloor(xsVectorGetX(p));
+    int y = exFloor(xsVectorGetY(p));
+    int offset = 0;
+    if (x >= 100) { x = 119 - x; y = 119 - y; offset = 32; }
+    if ((x < 6) || (x > 14) || (y < 56) || (y > 64)) { return (-1); }
+    if (y == 56) { return (offset + x - 6); }
+    if (y == 64) { return (offset + 9 + x - 6); }
+    if (x == 6) { return (offset + 18 + y - 57); }
+    if (x == 14) { return (offset + 25 + y - 57); }
+    return (-1);
 }
 
 bool exInitialize() {
@@ -606,29 +587,57 @@ bool exInitialize() {
     if (xsGetNumPlayers() != 2) {
         return (exInitReject("Players=" + xsGetNumPlayers() + "; expected 2 excluding Gaia. Events disabled."));
     }
-    exQuery = xsGetPlayerUnitIds(0, exGateObject, exQuery);
-    int count = xsArrayGetSize(exQuery);
-    if (count != 40) {
-        if (exAttempts >= 10) { exLookupDiagnostic(); }
-        return (exInitReject("Gaia sea barriers (1323)=" + count + "; expected 40. Events disabled."));
-    }
+    // Bounded reference scan, independently verified in the user's native test.
+    // Missing landmarks above the scan ceiling fail closed, never get recreated.
     for (i = 0; < 40) { xsArraySetInt(exGates, i, -1); }
-    for (i = 0; < count) {
-        int id = xsArrayGetInt(exQuery, i);
-        vector position = xsGetUnitPosition(id);
-        int slot = exGateSlot(position);
-        if (slot < 0) {
-            return (exInitReject("Barrier id=" + id + " at x=" + xsVectorGetX(position) + ", y=" + xsVectorGetY(position) + "; expected x=[55,65), y=[58,62). Events disabled."));
+    for (i = 0; < 64) { xsArraySetInt(exWalls, i, -1); }
+    for (i = 0; < 2) { xsArraySetInt(exShrubs, i, -1); }
+    int gates = 0;
+    int walls = 0;
+    int shrubs = 0;
+    string invalid = "";
+    for (id = 0; < 4096) {
+        if (xsDoesUnitExist(id)) {
+            if (xsGetUnitOwner(id) == 0) {
+                int object = xsGetUnitObjectId(id);
+                if ((object == exGateObject) || (object == exWall) || (object == exBush)) {
+                    vector p = xsGetUnitPosition(id);
+                    int slot = -1;
+                    int target = -1;
+                    if (object == exGateObject) {
+                        gates = gates + 1;
+                        target = exGates;
+                        slot = exGateSlot(p);
+                    }
+                    if (object == exWall) {
+                        walls = walls + 1;
+                        target = exWalls;
+                        slot = exWallSlot(p);
+                    }
+                    if (object == exBush) {
+                        shrubs = shrubs + 1;
+                        target = exShrubs;
+                        int x = exFloor(xsVectorGetX(p));
+                        int y = exFloor(xsVectorGetY(p));
+                        if ((x == 46) && (y == 35)) { slot = 0; }
+                        if ((x == 73) && (y == 84)) { slot = 1; }
+                    }
+                    if (slot < 0) {
+                        if (invalid == "") { invalid = "Landmark object=" + object + "; ref=" + id + "; x=" + xsVectorGetX(p) + "; y=" + xsVectorGetY(p) + "; outside authored slots."; }
+                    } else {
+                        if (xsArrayGetInt(target, slot) >= 0) {
+                            if (invalid == "") { invalid = "Duplicate landmark object=" + object + "; slot=" + slot + "; refs=" + xsArrayGetInt(target, slot) + "," + id; }
+                        } else { xsArraySetInt(target, slot, id); }
+                    }
+                }
+            }
         }
-        if (xsArrayGetInt(exGates, slot) >= 0) {
-            return (exInitReject("Duplicate barrier slot=" + slot + "; ids=" + xsArrayGetInt(exGates, slot) + "," + id + "; x=" + xsVectorGetX(position) + ", y=" + xsVectorGetY(position) + ". Expected one per tile. Events disabled."));
-        }
-        xsArraySetInt(exGates, slot, id);
     }
-    exWalls = xsGetPlayerUnitIds(0, exWall, exWalls);
-    if (xsArrayGetSize(exWalls) != 64) { return (exInitReject("Gaia walls (117)=" + xsArrayGetSize(exWalls) + "; expected 64. Events disabled.")); }
-    exQuery = xsGetPlayerUnitIds(0, exBush, exQuery);
-    if (xsArrayGetSize(exQuery) != 2) { return (exInitReject("Gaia burning-bush shrubs (1360)=" + xsArrayGetSize(exQuery) + "; expected 2. Events disabled.")); }
+    if (gates != 40) { return (exInitReject("Gaia sea barriers (1323)=" + gates + "; expected 40. Scan refs 0..4095; higher refs not checked. Events disabled.")); }
+    if (walls != 64) { return (exInitReject("Gaia walls (117)=" + walls + "; expected 64. Scan refs 0..4095; higher refs not checked. Events disabled.")); }
+    if (shrubs != 2) { return (exInitReject("Gaia burning-bush shrubs (1360)=" + shrubs + "; expected 2. Scan refs 0..4095; higher refs not checked. Events disabled.")); }
+    if (invalid != "") { return (exInitReject(invalid + " Events disabled.")); }
+    exNotice("EXODUS refs-01: Registered 40 sea barriers, 64 walls and 2 shrubs by reference ID; all authored slots verified.");
     exOriginalMood = xsGetColorMood();
     exConfigureGaia();
     exNotice("EXODUS: SEA OF SIGNS. Tiny 1v1 Conquest. First sea crossing 12:20; flood 18:00; repeats every 18 minutes. Coastal roads NEVER close. Flooded seabed: 6 HP/second to land units.");
@@ -646,7 +655,7 @@ maxInterval 1
     exLastTick = now;
     if (exReady == false) {
         exAttempts = exAttempts + 1;
-        if (exAttempts == 1) { exNotice("EXODUS XS BUILD: 2026-09-08 diag-02. Checking map initialization."); }
+        if (exAttempts == 1) { exNotice("EXODUS XS BUILD: 2026-09-08 refs-01. Checking map initialization."); }
         exReady = exInitialize();
         if ((exReady == false) && (exAttempts >= 10)) {
             xsDisableSelf();
@@ -671,6 +680,8 @@ maxInterval 1
 void main() {
     exPendingCue = 0;
     exGates = xsArrayCreateInt(40, -1, "exGates");
+    exWalls = xsArrayCreateInt(64, -1, "exWalls");
+    exShrubs = xsArrayCreateInt(2, -1, "exShrubs");
     exEffects = xsArrayCreateInt(exPoolSize, -1, "exEffects");
     exExpires = xsArrayCreateInt(exPoolSize, 0, "exExpires");
     exCurtains = xsArrayCreateInt(12, -1, "exCurtains");
