@@ -135,10 +135,10 @@ test('diagnostic build reports every initialization rejection with actual values
   for(const [w,pattern] of cases) {
     w.run(1,9);
     assert.equal(w.messages.length,1);
-    assert.match(w.messages[0].message,/EXODUS XS BUILD: 2026-09-08 curtains-02/);
+    assert.match(w.messages[0].message,/EXODUS XS BUILD: 2026-09-08 pillars-03/);
     w.run(10,20);
     assert.equal(w.messages.filter(m=>m.message.includes('INITIALIZATION FAILED')).length,1);assert.equal(w.disabled,true);
-    assert.match(w.messages.at(-1).message,/INITIALIZATION FAILED \[curtains-02\]/);
+    assert.match(w.messages.at(-1).message,/INITIALIZATION FAILED \[pillars-03\]/);
     assert.match(w.messages.at(-1).message,pattern);
     assert.equal(w.value('exReady'),false);
     assert.equal(w.sounds.length,0);assert.equal(w.damage.length,0);
@@ -264,14 +264,14 @@ test('seven horns, then only original Gaia Jericho walls fall; player walls surv
 
 test('audio availability never changes simulation; particle arrays remain bounded over multiple cycles',()=>{
   const a=world({sound:true}),b=world({sound:false});a.run(1,2300);b.run(1,2300);
-  assert.equal(a.arrays.size,14);assert.equal(b.arrays.size,14);assert.ok(a.count(1308)<=48);
+  assert.equal(a.arrays.size,14);assert.equal(b.arrays.size,14);assert.ok(a.count(1308)<=50);
   assert.equal(a.count(1635),44);assert.ok(a.count(304)<=4);
   assert.deepEqual([...a.units.values()],[...b.units.values()]);assert.deepEqual(a.messages,b.messages);
 });
 
 test('long-running cycles recreate no duplicate sea gates or runaway effects',()=>{
   const w=world();w.tick(1);for(let c=0;c<20;c++)for(const offset of [660,720,730,740,990,1080,1120])w.tick(offset+c*1080);
-  assert.equal(w.count(1323),40);assert.equal(w.count(1635),44);assert.ok(w.count(1308)<=48);
+  assert.equal(w.count(1323),40);assert.equal(w.count(1635),44);assert.ok(w.count(1308)<=50);
   assert.equal(w.arrays.size,14);assert.equal(w.value('exFailure'),false);
 });
 
@@ -428,4 +428,20 @@ test('both curtain banks have identical shoreline endpoints in every sea phase',
     assert.equal(right[0],44.5);assert.equal(right.at(-1),75.5);
     for(let i=0;i<22;i++)assert.ok(Math.abs(left[i]-right[i])<1e-9);
   }
+});
+
+test('bank pillars use two persistent ground-level smoke emitters without trails or particle churn',()=>{
+  const w=world();w.tick(1);
+  const refs=w.arrays.get(w.value('exPillars')).slice(2);
+  const pool=w.value('exPoolCursor');
+  for(let now=2;now<=120;now++)w.value(`exPillar(${now})`);
+  assert.deepEqual(w.arrays.get(w.value('exPillars')).slice(2),refs);
+  assert.equal(w.value('exPoolCursor'),pool);
+  const a=w.units.get(refs[0]),b=w.units.get(refs[1]);
+  assert.deepEqual([a.x,a.y,a.z],[55.5,37.5,0]);
+  assert.deepEqual([b.x,b.y,b.z],[64.5,82.5,0]);
+  assert.equal(w.count(1308),2);
+  w.units.delete(refs[0]);w.value('exPillar(121)');assert.equal(w.count(1308),2);
+  w.value('exPhase=1; exPillar(660)');assert.equal(w.count(304),2);
+  w.value('exPhase=3; exPillar(740)');assert.equal(w.count(304),0);assert.equal(w.count(1308),2);
 });

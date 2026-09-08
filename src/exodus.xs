@@ -389,7 +389,7 @@ void exSea(int now = 0) {
             if (exOpeningFailures >= 3) {
                 exFailure = true;
                 xsClearTimer(710);
-                exNotice("EXODUS curtains-02: Barrier removal was not confirmed. Events suspended. Crossing is NOT certified open. INVALID for competition.");
+                exNotice("EXODUS pillars-03: Barrier removal was not confirmed. Events suspended. Crossing is NOT certified open. INVALID for competition.");
                 return;
             }
         }
@@ -432,7 +432,7 @@ void exVisitLandUnit(int id = -1, int now = 0) {
                                     if (xsGetUnitHitpoints(id) > hp + 0.1) {
                                         exFailure = true;
                                         xsClearTimer(710);
-                                        exNotice("EXODUS curtains-02: Flood HP change failed verification. Events suspended; INVALID for competition.");
+                                        exNotice("EXODUS pillars-03: Flood HP change failed verification. Events suspended; INVALID for competition.");
                                         return;
                                     }
                                 }
@@ -490,7 +490,7 @@ void exSurveyLandUnits(int now = 0) {
                     if (xsGetUnitOwner(ref) == player) {
                         if (exQueryFallbackNotice == false) {
                             exQueryFallbackNotice = true;
-                            exNotice("EXODUS curtains-02: Empty player query; using reference scan for unit effects.");
+                            exNotice("EXODUS pillars-03: Empty player query; using reference scan for unit effects.");
                         }
                         exVisitLandUnit(ref, now);
                         if (exFailure) { return; }
@@ -504,11 +504,9 @@ void exSurveyLandUnits(int now = 0) {
 void exPillar(int now = 0) {
     int mode = 0;
     if ((exPhase == 1) || (exPhase == 2) || (exPhase == 4) || (exPhase == 5)) { mode = 1; }
-    // Two mirrored guides move along the bank, never reveal enemy territory.
-    int step = exFloor(1.0 * now / 3.0) % 24;
-    if (step > 12) { step = 24 - step; }
+    // Fixed mirrored bank positions: one smoke object each, no drifting trail.
     for (side = 0; < 2) {
-        float x = 52.5 + 0.5 * step;
+        float x = 55.5;
         float y = 37.5;
         if (side == 1) { x = 120.0 - x; y = 120.0 - y; }
         int id = xsArrayGetInt(exPillars, side);
@@ -521,10 +519,14 @@ void exPillar(int now = 0) {
             if (exOwnScenery(id, exFire)) { xsRemoveUnit(id); }
             if (xsDoesUnitExist(id) == false) { xsArraySetInt(exPillars, side, -1); }
         }
-        if (now % 3 == 0) {
-            exParticle(exPoint(x, y, 1.0), now, 8);
-            exParticle(exPoint(x, y, 1.8), now, 8);
+        int smoke = xsArrayGetInt(exPillars, side + 2);
+        if (xsDoesUnitExist(smoke) == false) {
+            // Ground-level emitter; the native smoke animation supplies height.
+            smoke = xsCreateUnit(exCloud, 0, exPoint(x, y, 0.0), false, false, false);
+            xsArraySetInt(exPillars, side + 2, smoke);
         }
+        // Retain live IDs, including ownership-changed objects: no duplicates.
+
     }
     if (mode != exLastPillar) {
         if (mode == 1) { exNotice("EXODUS: THE PILLARS OF FIRE GUIDE THE BANKS."); }
@@ -625,7 +627,7 @@ void exJericho(int now = 0) {
             if (now >= 1457) {
                 exFailure = true;
                 xsClearTimer(710);
-                exNotice("EXODUS curtains-02: Jericho wall removal unconfirmed. Events suspended; INVALID for competition.");
+                exNotice("EXODUS pillars-03: Jericho wall removal unconfirmed. Events suspended; INVALID for competition.");
             }
             return;
         }
@@ -642,7 +644,7 @@ void exJericho(int now = 0) {
 bool exInitReject(string detail = "") {
     // Report only on the final retry so delayed RMS placement does not spam chat.
     if (exAttempts >= 10) {
-        exNotice("EXODUS: INITIALIZATION FAILED [curtains-02]: " + detail);
+        exNotice("EXODUS: INITIALIZATION FAILED [pillars-03]: " + detail);
     }
     return (false);
 }
@@ -755,7 +757,7 @@ bool exInitialize() {
             if (exWallSlot(xsGetUnitPosition(oldMarker)) == i) { xsRemoveUnit(oldMarker); }
         }
     }
-    exNotice("EXODUS curtains-02: Registered 40 sea barriers, 64 walls and 2 shrubs by reference ID; all authored slots verified.");
+    exNotice("EXODUS pillars-03: Registered 40 sea barriers, 64 walls and 2 shrubs by reference ID; all authored slots verified.");
     exOriginalMood = xsGetColorMood();
     exConfigureGaia();
     exNotice("EXODUS: SEA OF SIGNS. Tiny 1v1 Conquest. First sea crossing 12:20; flood 18:00; repeats every 18 minutes. Coastal roads NEVER close. Flooded seabed: 6 HP/second to land units.");
@@ -773,7 +775,7 @@ maxInterval 1
     exLastTick = now;
     if (exReady == false) {
         exAttempts = exAttempts + 1;
-        if (exAttempts == 1) { exNotice("EXODUS XS BUILD: 2026-09-08 curtains-02. Checking map initialization."); }
+        if (exAttempts == 1) { exNotice("EXODUS XS BUILD: 2026-09-08 pillars-03. Checking map initialization."); }
         exReady = exInitialize();
         if ((exReady == false) && (exAttempts >= 10)) {
             xsDisableSelf();
@@ -807,7 +809,7 @@ void main() {
     exEffects = xsArrayCreateInt(exPoolSize, -1, "exEffects");
     exExpires = xsArrayCreateInt(exPoolSize, 0, "exExpires");
     exCurtains = xsArrayCreateInt(44, -1, "exCurtains");
-    exPillars = xsArrayCreateInt(2, -1, "exPillars");
+    exPillars = xsArrayCreateInt(4, -1, "exPillars");
     exMannaDone = xsArrayCreateInt(2, 0, "exMannaDone");
     exBushLit = xsArrayCreateInt(2, 0, "exBushLit");
     exInitialBushes = xsArrayCreateInt(6, -1, "exStagedFood");

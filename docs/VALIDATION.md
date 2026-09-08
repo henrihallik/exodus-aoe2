@@ -1,5 +1,11 @@
 # Validation record — 0.2.2
 
+## Bank smoke adjustment — pillars-03
+
+The moving bank smoke left an unwanted horizontal strip in native screenshots. This update removes moving emission and stacked elevated puffs from `exPillar`. Each bank has one persistent ground-level native smoke object, at (55.5,37.5,0) and its rotational counterpart (64.5,82.5,0). Missing emitters are recreated, live references are retained, and fire-phase cues remain unchanged. There are two fixed bank smoke objects plus at most 48 pooled event particles; array count remains 14, with the pillar array expanded from two to four slots. The 44-piece curtain extension is retained.
+
+Eight focused tests passed for persistent smoke/no trail or pool churn, smoke recreation and fire switching, curtain endpoints/mirroring, initialization, cue mapping, fire recovery and failed cleanup. XS lint and diff checks pass. This removes a code path that produces trails, but the actual native smoke sprite and rendered silhouette remain unverified. No ZIP created; RMS unchanged.
+
 ## Curtain endpoint adjustment — curtains-02
 
 User screenshots showed continuous-looking 18-piece curtains with staggered endpoints and short shoreline coverage. Previous y=46.5..71.5 reflected into y=48.5..73.5. New 22-piece sides both span 44.5..75.5, invariant under y -> 120-y. Spacing is 31/21 tiles; total fixed curtain count is 44. A regression checks matching sorted y positions and exact endpoints across closed, wind, opening, open, warning and flooding phases. Existing rotational/easing checks remain. These are authored shoreline tile centers, not a guarantee of exact rendered sprite-edge contact at every terrain transition. Native screenshot confirmation remains needed. Smoke-pillar graphics and the previously reported native gameplay failures are not proven resolved by this visual patch. No archive changes.
