@@ -34,7 +34,7 @@ function translate(xs) {
 }
 
 // Native xsGetNumPlayers excludes Gaia; a standard 1v1 returns 2.
-function world({spawn=true,sound=true,players=2,width=120,height=120}={}) {
+function world({spawn=true,sound=true,players=2,width=120,height=120,objectFirst=false}={}) {
   const arrays=new Map(),units=new Map(),messages=[],sounds=[],removed=[],damage=[],effects=[],moods=[],timers=[];
   let nextArray=0,nextUnit=1,now=0,disabled=false,scans=0,deny=()=>false;
   function add(object,x,y,owner=0,klass=911,hp=100,garrison=-1) {
@@ -55,6 +55,7 @@ function world({spawn=true,sound=true,players=2,width=120,height=120}={}) {
     xsArraySetInt:(id,i,v)=>{assert.ok(arrays.has(id));assert.ok(Number.isInteger(i)&&i>=0&&i<arrays.get(id).length);arrays.get(id)[i]=v;},
     xsArrayGetSize:id=>{assert.ok(arrays.has(id));return arrays.get(id).length;},
     xsGetPlayerUnitIds:(owner,kind,id=-1)=>{
+      if(objectFirst)[owner,kind]=[kind,owner];
       scans++;if(!arrays.has(id))id=nextArray++;
       arrays.set(id,[...units.values()].filter(u=>u.owner===owner&&(u.object===kind||u.klass===kind)).map(u=>u.id));return id;
     },
@@ -133,14 +134,46 @@ test('diagnostic build reports every initialization rejection with actual values
   for(const [w,pattern] of cases) {
     w.run(1,9);
     assert.equal(w.messages.length,1);
-    assert.match(w.messages[0].message,/EXODUS XS BUILD: 2026-09-08 diag-01/);
+    assert.match(w.messages[0].message,/EXODUS XS BUILD: 2026-09-08 diag-02/);
     w.run(10,20);
-    assert.equal(w.messages.length,2);assert.equal(w.disabled,true);
-    assert.match(w.messages[1].message,/INITIALIZATION FAILED \[diag-01\]/);
-    assert.match(w.messages[1].message,pattern);
+    assert.equal(w.messages.filter(m=>m.message.includes('INITIALIZATION FAILED')).length,1);assert.equal(w.disabled,true);
+    assert.match(w.messages.at(-1).message,/INITIALIZATION FAILED \[diag-02\]/);
+    assert.match(w.messages.at(-1).message,pattern);
     assert.equal(w.value('exReady'),false);
     assert.equal(w.sounds.length,0);assert.equal(w.damage.length,0);
   }
+});
+
+test('lookup diagnostic distinguishes both API conventions without changing world state',()=>{
+  for(const objectFirst of [false,true]) {
+    const w=world({objectFirst});
+    const before=JSON.stringify([...w.units]);const effects=w.effects.length;const arrays=w.arrays.size;
+    w.value('exLookupDiagnostic()');
+    assert.match(w.messages[0].message,objectFirst ? /\(0,1323\)=0; \(1323,0\)=40/ : /\(0,1323\)=40; \(1323,0\)=0/);
+    assert.match(w.messages.at(-1).message,/Gaia object1323=40; crossing objects=40/);
+    assert.equal(w.messages.filter(m=>m.message.includes('SAMPLE:')).length,2);
+    assert.match(w.messages[1].message,/owner=0; object=1323; x=/);
+    assert.equal(JSON.stringify([...w.units]),before);
+    assert.equal(w.effects.length,effects);assert.equal(w.arrays.size,arrays+1);
+    assert.equal(w.removed.length,0);assert.equal(w.damage.length,0);assert.equal(w.sounds.length,0);
+  }
+});
+
+test('reversed API failure runs diagnostic once and stays disabled without automatic repair',()=>{
+  const w=world({objectFirst:true});const before=JSON.stringify([...w.units]);
+  w.run(1,30);
+  assert.equal(w.disabled,true);assert.equal(w.value('exReady'),false);
+  assert.equal(w.messages.filter(m=>m.message.includes('QUERY:')).length,1);
+  assert.equal(w.messages.filter(m=>m.message.includes('SCAN refs')).length,1);
+  assert.equal(JSON.stringify([...w.units]),before);
+});
+
+test('independent diagnostic identifies unexpected object types and owners without guessing replacements',()=>{
+  const w=world({spawn:false});w.add(623,55.5,58.5,0);w.add(1323,56.5,58.5,1);
+  w.value('exLookupDiagnostic()');
+  assert.match(w.messages[1].message,/owner=0; object=623/);
+  assert.match(w.messages[2].message,/owner=1; object=1323/);
+  assert.match(w.messages.at(-1).message,/Gaia object1323=0; crossing objects=2/);
 });
 
 test('successful initialization emits build identifier once without failure diagnostics',()=>{

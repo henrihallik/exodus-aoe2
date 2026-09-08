@@ -557,10 +557,43 @@ void exJericho(int now = 0) {
     }
 }
 
+void exLookupDiagnostic() {
+    // Read-only, once on final initialization failure. Reuse one scratch array.
+    // Conflicting references document opposite argument orders; do NOT select
+    // a runtime convention or enable events based on these probes.
+    int probe = -1;
+    probe = xsGetPlayerUnitIds(0, exGateObject, probe);
+    int playerFirst = xsArrayGetSize(probe);
+    probe = xsGetPlayerUnitIds(exGateObject, 0, probe);
+    int objectFirst = xsArrayGetSize(probe);
+    exNotice("EXODUS diag-02 QUERY: (0,1323)=" + playerFirst + "; (1323,0)=" + objectFirst + ". Expected 40 barriers.");
+    // Independent reference-ID scan: existence checked before every getter.
+    // This is a bounded sample, NOT a claim to enumerate every engine object.
+    int live = 0;
+    int gaiaRocks = 0;
+    int crossing = 0;
+    for (id = 0; < 4096) {
+        if (xsDoesUnitExist(id)) {
+            live = live + 1;
+            int owner = xsGetUnitOwner(id);
+            int object = xsGetUnitObjectId(id);
+            vector p = xsGetUnitPosition(id);
+            if ((owner == 0) && (object == exGateObject)) { gaiaRocks = gaiaRocks + 1; }
+            if (exGateSlot(p) >= 0) {
+                crossing = crossing + 1;
+                if (crossing <= 2) {
+                    exNotice("EXODUS diag-02 SAMPLE: ref=" + id + "; owner=" + owner + "; object=" + object + "; x=" + xsVectorGetX(p) + "; y=" + xsVectorGetY(p));
+                }
+            }
+        }
+    }
+    exNotice("EXODUS diag-02 SCAN refs 0..4095: live=" + live + "; Gaia object1323=" + gaiaRocks + "; crossing objects=" + crossing + ". Higher refs not scanned.");
+}
+
 bool exInitReject(string detail = "") {
     // Report only on the final retry so delayed RMS placement does not spam chat.
     if (exAttempts >= 10) {
-        exNotice("EXODUS: INITIALIZATION FAILED [diag-01]: " + detail);
+        exNotice("EXODUS: INITIALIZATION FAILED [diag-02]: " + detail);
     }
     return (false);
 }
@@ -575,7 +608,10 @@ bool exInitialize() {
     }
     exQuery = xsGetPlayerUnitIds(0, exGateObject, exQuery);
     int count = xsArrayGetSize(exQuery);
-    if (count != 40) { return (exInitReject("Gaia sea barriers (1323)=" + count + "; expected 40. Events disabled.")); }
+    if (count != 40) {
+        if (exAttempts >= 10) { exLookupDiagnostic(); }
+        return (exInitReject("Gaia sea barriers (1323)=" + count + "; expected 40. Events disabled."));
+    }
     for (i = 0; < 40) { xsArraySetInt(exGates, i, -1); }
     for (i = 0; < count) {
         int id = xsArrayGetInt(exQuery, i);
@@ -610,7 +646,7 @@ maxInterval 1
     exLastTick = now;
     if (exReady == false) {
         exAttempts = exAttempts + 1;
-        if (exAttempts == 1) { exNotice("EXODUS XS BUILD: 2026-09-08 diag-01. Checking map initialization."); }
+        if (exAttempts == 1) { exNotice("EXODUS XS BUILD: 2026-09-08 diag-02. Checking map initialization."); }
         exReady = exInitialize();
         if ((exReady == false) && (exAttempts >= 10)) {
             xsDisableSelf();

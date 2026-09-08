@@ -1,5 +1,11 @@
 # Validation record — 0.2.2
 
+## Read-only lookup diagnostic — diag-02
+
+The native screenshot shows a central rock formation while diag-01 reports zero Gaia object 1323. This does not establish its exact object IDs or query semantics. On the final barrier-count failure, diag-02 compares `xsGetPlayerUnitIds(0,1323,array)` and `(1323,0,array)` using one scratch array. It independently scans reference IDs 0–4095 with existence checks before getters, reports matching Gaia 1323 counts and barrier-footprint counts, and prints at most two footprint samples with reference ID, owner, object ID, and coordinates. Higher reference IDs are explicitly not covered. No objects/attributes are changed by the diagnostic, no automatic convention is chosen, and failed initialization remains disabled. Existing normal initialization behavior is unchanged.
+
+The mock suite adds tests under both argument-order interpretations, checks independent identification of different object types/owners, scratch-array reuse, once-only reporting, and absence of world mutation. Native execution of these new probes remains unverified. No ZIP is created or updated.
+
 ## Diagnostic direct-download update — diag-01
 
 The user reported another initialization failure after the player-count hotfix. The generic message cannot identify the remaining cause. This update announces `2026-09-08 diag-01` once on the first runtime tick and reports the first failing guard on the tenth/final attempt: map dimensions, non-Gaia player count, sea-barrier count, out-of-bounds barrier ID/coordinates, duplicate slot with both IDs/coordinates, wall count, or shrub count. No validation gate is relaxed and no event is enabled on failure. A standard-dataset selection is not separately detected; object checks are the actual guards.

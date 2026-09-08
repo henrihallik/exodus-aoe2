@@ -1,5 +1,7 @@
 # Exodus: Sea of Signs
 
+Latest direct-download diagnostic: **diag-02**. On a sea-barrier count failure it reports both lookup argument orders, then independently samples existing reference IDs 0–4095 and prints up to two objects at the barrier footprint (ID, owner, object type, coordinates). This is read-only inspection, not an automatic repair; initialization safety checks stay enabled. Send the `QUERY`, `SAMPLE`, and `SCAN` chat lines. No new ZIP.
+
 Diagnostic update: the direct-download XS prints `EXODUS XS BUILD: 2026-09-08 diag-01` on its first runtime tick. If initialization still fails, its final retry reports the first failed check with actual/expected dimensions, player count, landmark counts, or barrier coordinates/duplicate slot. Share that diagnostic message; event safety checks remain enabled. No ZIP was created for this update.
 
 Direct-download hotfix (2026-09-08): `main` fixes the 1v1 initialization player count. Download the updated [exodus.xs](dist/Exodus/resources/_common/xs/exodus.xs) as a raw file. Existing v0.2.2 ZIPs do not contain this fix; no new ZIP was created. Native event validation remains pending.
