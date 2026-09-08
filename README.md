@@ -1,5 +1,7 @@
 # Exodus: Sea of Signs
 
+Direct-download hotfix (2026-09-08): `main` fixes the 1v1 initialization player count. Download the updated [exodus.xs](dist/Exodus/resources/_common/xs/exodus.xs) as a raw file. Existing v0.2.2 ZIPs do not contain this fix; no new ZIP was created. Native event validation remains pending.
+
 **An epic biblical battlefield for AoE2 DE · Tiny · 1v1 · Conquest**
 
 [Download the latest playtest ZIP](https://github.com/henrihallik/exodus-aoe2/releases/latest) · [Release history](https://github.com/henrihallik/exodus-aoe2/releases)

@@ -1,5 +1,11 @@
 # Validation record — 0.2.2
 
+## Direct-download hotfix — 2026-09-08
+
+The user's next native test reached the scripted initialization-failure message, demonstrating execution past compilation, but not working events. The initialization guard incorrectly expected three players including Gaia. [Forgotten Empires documents that `xsGetNumPlayers` excludes Gaia](https://www.forgottenempires.net/age-of-empires-ii-definitive-edition/xs-scripting-in-age-of-empires-ii-definitive-edition); a 1v1 returns two. Both source and direct-download XS now require two. The mocked API had repeated the same mistaken assumption and is corrected, with an explicit two-player acceptance/other-count rejection regression test. The updated Node suite has 24 tests. Native initialization and subsequent events still need confirmation.
+
+This hotfix updates loose files on `main` only, at the user's request. Existing v0.2.2 ZIPs and release assets are historical and do not contain this correction; no new ZIP is created. The validation notes below describe the earlier packaged build.
+
 Updated: 2026-09-08. Status: implemented playtest candidate. The user's native v0.1.0 test failed XS compilation: unterminated-string/token errors at lines 235–236, followed by an `exPoint` code-generation error. Both reported string lines contain UTF-8 em dashes. This strongly implicates encoding; the `exPoint` error may be cascading, but that is not confirmed without a new native test. No successful native execution is claimed.
 
 Version 0.2.1 replaces every non-ASCII character in XS with ASCII and validates both RMS and XS before writing runnable artifacts. Regression checks reject Unicode (including BOMs) and unsupported control bytes, and inspect the actual ZIP scripts. Earlier external lint/mock passes did not detect this native compatibility issue. The correction is packaged with the previously local v0.2.0 upgrade; the old release is preserved for traceability.

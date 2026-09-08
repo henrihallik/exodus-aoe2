@@ -558,7 +558,8 @@ void exJericho(int now = 0) {
 }
 
 bool exInitialize() {
-    if ((xsGetMapWidth() != 120) || (xsGetMapHeight() != 120) || (xsGetNumPlayers() != 3)) {
+    // xsGetNumPlayers excludes Gaia: a 1v1 match returns 2, not 3.
+    if ((xsGetMapWidth() != 120) || (xsGetMapHeight() != 120) || (xsGetNumPlayers() != 2)) {
         return (false);
     }
     exQuery = xsGetPlayerUnitIds(0, exGateObject, exQuery);

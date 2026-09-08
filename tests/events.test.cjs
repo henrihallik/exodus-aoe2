@@ -33,7 +33,8 @@ function translate(xs) {
     .replace(/for\s*\(\s*(\w+)\s*=\s*([^;]+);\s*<\s*([^)]*)\)/g,'for (let $1 = $2; $1 < $3; $1++)');
 }
 
-function world({spawn=true,sound=true,players=3}={}) {
+// Native xsGetNumPlayers excludes Gaia; a standard 1v1 returns 2.
+function world({spawn=true,sound=true,players=2}={}) {
   const arrays=new Map(),units=new Map(),messages=[],sounds=[],removed=[],damage=[],effects=[],moods=[],timers=[];
   let nextArray=0,nextUnit=1,now=0,disabled=false,scans=0,deny=()=>false;
   function add(object,x,y,owner=0,klass=911,hp=100,garrison=-1) {
@@ -95,6 +96,17 @@ test('phase boundaries and repeating schedule are exact for ten cycles',()=>{
   for(let c=0;c<10;c++)for(const [offset,phase] of [[0,1],[59,1],[60,2],[79,2],[80,3],[329,3],[330,4],[419,4],[420,5],[459,5],[460,0],[1079,0]])
     assert.equal(w.value(`exSeaPhase(${660+c*1080+offset})`),phase);
   assert.equal(w.value('exSeaPhase(659)'),0);
+});
+
+test('initialization accepts two non-Gaia players and rejects other player counts',()=>{
+  const duel=world({players:2});duel.tick(1);
+  assert.equal(duel.value('exReady'),true);
+  for(const players of [0,1,3,4,5,6,7,8]) {
+    const invalid=world({players});invalid.run(1,10);
+    assert.equal(invalid.value('exReady'),false);
+    assert.equal(invalid.disabled,true);
+  }
+  assert.equal(fs.readFileSync(path.join(__dirname,'../dist/Exodus/resources/_common/xs/exodus.xs'),'utf8'),source);
 });
 
 test('initialization waits; missing, duplicate, or wrong-player landmarks fail visibly',()=>{
