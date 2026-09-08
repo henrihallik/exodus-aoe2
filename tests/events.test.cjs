@@ -135,10 +135,10 @@ test('diagnostic build reports every initialization rejection with actual values
   for(const [w,pattern] of cases) {
     w.run(1,9);
     assert.equal(w.messages.length,1);
-    assert.match(w.messages[0].message,/EXODUS XS BUILD: 2026-09-08 runtime-01/);
+    assert.match(w.messages[0].message,/EXODUS XS BUILD: 2026-09-08 curtains-02/);
     w.run(10,20);
     assert.equal(w.messages.filter(m=>m.message.includes('INITIALIZATION FAILED')).length,1);assert.equal(w.disabled,true);
-    assert.match(w.messages.at(-1).message,/INITIALIZATION FAILED \[runtime-01\]/);
+    assert.match(w.messages.at(-1).message,/INITIALIZATION FAILED \[curtains-02\]/);
     assert.match(w.messages.at(-1).message,pattern);
     assert.equal(w.value('exReady'),false);
     assert.equal(w.sounds.length,0);assert.equal(w.damage.length,0);
@@ -265,13 +265,13 @@ test('seven horns, then only original Gaia Jericho walls fall; player walls surv
 test('audio availability never changes simulation; particle arrays remain bounded over multiple cycles',()=>{
   const a=world({sound:true}),b=world({sound:false});a.run(1,2300);b.run(1,2300);
   assert.equal(a.arrays.size,14);assert.equal(b.arrays.size,14);assert.ok(a.count(1308)<=48);
-  assert.equal(a.count(1635),36);assert.ok(a.count(304)<=4);
+  assert.equal(a.count(1635),44);assert.ok(a.count(304)<=4);
   assert.deepEqual([...a.units.values()],[...b.units.values()]);assert.deepEqual(a.messages,b.messages);
 });
 
 test('long-running cycles recreate no duplicate sea gates or runaway effects',()=>{
   const w=world();w.tick(1);for(let c=0;c<20;c++)for(const offset of [660,720,730,740,990,1080,1120])w.tick(offset+c*1080);
-  assert.equal(w.count(1323),40);assert.equal(w.count(1635),36);assert.ok(w.count(1308)<=48);
+  assert.equal(w.count(1323),40);assert.equal(w.count(1635),44);assert.ok(w.count(1308)<=48);
   assert.equal(w.arrays.size,14);assert.equal(w.value('exFailure'),false);
 });
 
@@ -339,7 +339,7 @@ test('curtain easing preserves endpoints and rotational pairing; transition mist
   const w=world();w.tick(1);w.tick(720);
   const first=[...w.units.values()].filter(u=>u.object===1635)[0];assert.equal(first.x,58.5);
   w.tick(730);assert.equal(first.x,56);w.tick(740);assert.equal(first.x,53.5);
-  for(let i=0;i<36;i+=2){const a=w.units.get(w.value(`xsArrayGetInt(exCurtains,${i})`));
+  for(let i=0;i<44;i+=2){const a=w.units.get(w.value(`xsArrayGetInt(exCurtains,${i})`));
     const b=w.units.get(w.value(`xsArrayGetInt(exCurtains,${i+1})`));assert.equal(a.x+b.x,120);assert.equal(a.y+b.y,120);}
   w.tick(1080);
   const low=[...w.units.values()].filter(u=>u.object===1308&&u.z===.5);assert.equal(low.length,2);
@@ -391,10 +391,10 @@ test('failed removals preserve rock references and never announce an open crossi
   assert.equal(w.messages.some(m=>m.message.includes('THE SEA ROAD IS OPEN')),false);
   assert.match(w.messages.at(-1).message,/NOT certified open/);
 });
-test('36 waterfall pieces form 18 mirrored pairs with tight along-bank spacing',()=>{
+test('44 waterfall pieces form 22 mirrored pairs with tight along-bank spacing',()=>{
   const w=world();w.tick(1);w.tick(740);
-  const ids=w.arrays.get(w.value('exCurtains'));assert.equal(ids.length,36);
-  for(let i=0;i<36;i+=2) {
+  const ids=w.arrays.get(w.value('exCurtains'));assert.equal(ids.length,44);
+  for(let i=0;i<44;i+=2) {
     const a=w.units.get(ids[i]),b=w.units.get(ids[i+1]);
     assert.equal(a.x+b.x,120);assert.equal(a.y+b.y,120);
     if(i>=2)assert.ok(Math.abs(a.y-w.units.get(ids[i-2]).y)<1.5);
@@ -414,4 +414,18 @@ test('failed particle removal keeps references bounded instead of spawning untra
   assert.ok(w.count(1308)<=48);
   const ids=w.arrays.get(w.value('exEffects')).filter(id=>id>=0);
   assert.equal(new Set(ids).size,w.count(1308));
+});
+
+test('both curtain banks have identical shoreline endpoints in every sea phase',()=>{
+  const w=world();w.tick(1);
+  for(const now of [1,660,720,730,740,990,1080,1100,1120]) {
+    w.tick(now);
+    const ids=w.arrays.get(w.value('exCurtains'));
+    const left=ids.filter((_,i)=>i%2===0).map(id=>w.units.get(id).y).sort((a,b)=>a-b);
+    const right=ids.filter((_,i)=>i%2===1).map(id=>w.units.get(id).y).sort((a,b)=>a-b);
+    assert.equal(left.length,22);assert.equal(right.length,22);
+    assert.equal(left[0],44.5);assert.equal(left.at(-1),75.5);
+    assert.equal(right[0],44.5);assert.equal(right.at(-1),75.5);
+    for(let i=0;i<22;i++)assert.ok(Math.abs(left[i]-right[i])<1e-9);
+  }
 });

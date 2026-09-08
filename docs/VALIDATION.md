@@ -1,5 +1,9 @@
 # Validation record — 0.2.2
 
+## Curtain endpoint adjustment — curtains-02
+
+User screenshots showed continuous-looking 18-piece curtains with staggered endpoints and short shoreline coverage. Previous y=46.5..71.5 reflected into y=48.5..73.5. New 22-piece sides both span 44.5..75.5, invariant under y -> 120-y. Spacing is 31/21 tiles; total fixed curtain count is 44. A regression checks matching sorted y positions and exact endpoints across closed, wind, opening, open, warning and flooding phases. Existing rotational/easing checks remain. These are authored shoreline tile centers, not a guarantee of exact rendered sprite-edge contact at every terrain transition. Native screenshot confirmation remains needed. Smoke-pillar graphics and the previously reported native gameplay failures are not proven resolved by this visual patch. No archive changes.
+
 ## Runtime repair candidate — runtime-01
 
 Local verification: 38 mocked event tests cover the changes, including query-return aliasing, empty-query fallback, refused removals, refused HP writes, 36-piece symmetry and bounded failed particle cleanup. XS lint reports no errors. Loose-script encoding/declaration and source/download equality are checked. Historical ZIPs intentionally remain untouched. Primary references used: [UGC Gaia effect example](https://ugc.aoe2.rocks/general/xs/tricks/) and [XS function reference](https://ugc.aoe2.rocks/general/xs/functions/functions/). Native confirmation and performance checks remain required.

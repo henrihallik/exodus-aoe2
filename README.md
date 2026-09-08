@@ -1,5 +1,7 @@
 # Exodus: Sea of Signs
 
+**Latest visual adjustment: curtains-02.** Both waterfall curtains now have 22 pieces (44 total), spanning the same authored shoreline tile centers, y=44.5 through 75.5. Earlier mirrored ranges were offset by two tiles. Spacing remains about 1.48 tiles; the movement schedule and gameplay are unchanged. Replace XS only; no ZIP. Smoke-pillar appearance is still unresolved and is not changed by this adjustment.
+
 **Latest loose-file update: runtime-01.** Isolated player-query storage, empty-query reference fallback, verified barrier removal before OPEN, truthful failure messages, checked flood HP writes and Jericho removal, Gaia-specific scenery attribute changes, and 36 waterfall pieces (18 per side). No ZIP. Native validation of these corrections and continuous-looking water graphics is still pending; local tests do not certify DE behavior. Earlier entries below describe previous builds.
 
 **Latest fix: walls-01 — replace BOTH loose RMS and XS files.** RMS now places nonblocking setup torches at the 64 authored wall tiles. XS creates both Jericho enclosures during initialization, removes only those setup torches after success, and rolls back newly created walls if either enclosure fails. Coastal torches and each enclosure's four gold tiles plus relic are unchanged. No new ZIP; native wall appearance/collision still needs verification. Generate loose scripts with `python3 tools/build.py --scripts-only`. Older notes below describe earlier builds.

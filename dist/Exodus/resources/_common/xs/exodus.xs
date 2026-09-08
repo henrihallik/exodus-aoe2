@@ -326,7 +326,7 @@ void exMoveCurtains(int now = 0) {
         int side = i % 2;
         int row = exFloor(0.5 * i);
         float x = 58.5 - opening * 5.0;
-        float y = 46.5 + (25.0 / 17.0) * row;
+        float y = 44.5 + (31.0 / 21.0) * row;
         if (side == 1) { x = 120.0 - x; y = 120.0 - y; }
         int id = xsArrayGetInt(exCurtains, i);
         if (exOwnScenery(id, exWaterEffect) == false) {
@@ -389,7 +389,7 @@ void exSea(int now = 0) {
             if (exOpeningFailures >= 3) {
                 exFailure = true;
                 xsClearTimer(710);
-                exNotice("EXODUS runtime-01: Barrier removal was not confirmed. Events suspended. Crossing is NOT certified open. INVALID for competition.");
+                exNotice("EXODUS curtains-02: Barrier removal was not confirmed. Events suspended. Crossing is NOT certified open. INVALID for competition.");
                 return;
             }
         }
@@ -432,7 +432,7 @@ void exVisitLandUnit(int id = -1, int now = 0) {
                                     if (xsGetUnitHitpoints(id) > hp + 0.1) {
                                         exFailure = true;
                                         xsClearTimer(710);
-                                        exNotice("EXODUS runtime-01: Flood HP change failed verification. Events suspended; INVALID for competition.");
+                                        exNotice("EXODUS curtains-02: Flood HP change failed verification. Events suspended; INVALID for competition.");
                                         return;
                                     }
                                 }
@@ -490,7 +490,7 @@ void exSurveyLandUnits(int now = 0) {
                     if (xsGetUnitOwner(ref) == player) {
                         if (exQueryFallbackNotice == false) {
                             exQueryFallbackNotice = true;
-                            exNotice("EXODUS runtime-01: Empty player query; using reference scan for unit effects.");
+                            exNotice("EXODUS curtains-02: Empty player query; using reference scan for unit effects.");
                         }
                         exVisitLandUnit(ref, now);
                         if (exFailure) { return; }
@@ -625,7 +625,7 @@ void exJericho(int now = 0) {
             if (now >= 1457) {
                 exFailure = true;
                 xsClearTimer(710);
-                exNotice("EXODUS runtime-01: Jericho wall removal unconfirmed. Events suspended; INVALID for competition.");
+                exNotice("EXODUS curtains-02: Jericho wall removal unconfirmed. Events suspended; INVALID for competition.");
             }
             return;
         }
@@ -642,7 +642,7 @@ void exJericho(int now = 0) {
 bool exInitReject(string detail = "") {
     // Report only on the final retry so delayed RMS placement does not spam chat.
     if (exAttempts >= 10) {
-        exNotice("EXODUS: INITIALIZATION FAILED [runtime-01]: " + detail);
+        exNotice("EXODUS: INITIALIZATION FAILED [curtains-02]: " + detail);
     }
     return (false);
 }
@@ -755,7 +755,7 @@ bool exInitialize() {
             if (exWallSlot(xsGetUnitPosition(oldMarker)) == i) { xsRemoveUnit(oldMarker); }
         }
     }
-    exNotice("EXODUS runtime-01: Registered 40 sea barriers, 64 walls and 2 shrubs by reference ID; all authored slots verified.");
+    exNotice("EXODUS curtains-02: Registered 40 sea barriers, 64 walls and 2 shrubs by reference ID; all authored slots verified.");
     exOriginalMood = xsGetColorMood();
     exConfigureGaia();
     exNotice("EXODUS: SEA OF SIGNS. Tiny 1v1 Conquest. First sea crossing 12:20; flood 18:00; repeats every 18 minutes. Coastal roads NEVER close. Flooded seabed: 6 HP/second to land units.");
@@ -773,7 +773,7 @@ maxInterval 1
     exLastTick = now;
     if (exReady == false) {
         exAttempts = exAttempts + 1;
-        if (exAttempts == 1) { exNotice("EXODUS XS BUILD: 2026-09-08 runtime-01. Checking map initialization."); }
+        if (exAttempts == 1) { exNotice("EXODUS XS BUILD: 2026-09-08 curtains-02. Checking map initialization."); }
         exReady = exInitialize();
         if ((exReady == false) && (exAttempts >= 10)) {
             xsDisableSelf();
@@ -806,7 +806,7 @@ void main() {
     exShrubs = xsArrayCreateInt(2, -1, "exShrubs");
     exEffects = xsArrayCreateInt(exPoolSize, -1, "exEffects");
     exExpires = xsArrayCreateInt(exPoolSize, 0, "exExpires");
-    exCurtains = xsArrayCreateInt(36, -1, "exCurtains");
+    exCurtains = xsArrayCreateInt(44, -1, "exCurtains");
     exPillars = xsArrayCreateInt(2, -1, "exPillars");
     exMannaDone = xsArrayCreateInt(2, 0, "exMannaDone");
     exBushLit = xsArrayCreateInt(2, 0, "exBushLit");
