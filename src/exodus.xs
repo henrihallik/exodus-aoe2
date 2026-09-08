@@ -51,6 +51,10 @@ int exQuietUntil = 0;
 int exPendingPriority = 0;
 int exPendingCue = 0; // Numeric ID: avoid global string initialization quirks.
 int exAmbientPass = 0;
+int exOpeningFailures = 0;
+int exRefScanLimit = 4096;
+bool exQueryFallbackNotice = false;
+bool exOpenAnnounced = false;
 
 vector exPoint(float x = 0.0, float y = 0.0, float z = 0.0) {
     return (xsVectorSet(x, y, z));
@@ -238,29 +242,30 @@ void exSafetyWarnings(int now = 0) {
 
 void exConfigureGaia() {
     // Only unused-by-this-map Gaia scenery definitions are affected.
-    xsEffectAmount(cSetAttribute, exGateObject, cUnitSizeX, 0.5, 0);
-    xsEffectAmount(cSetAttribute, exGateObject, cUnitSizeY, 0.5, 0);
-    xsEffectAmount(cSetAttribute, exGateObject, cObstructionType, 2, 0);
-    xsEffectAmount(cSetAttribute, exGateObject, cBlockageClass, 6, 0);
-    xsEffectAmount(cSetAttribute, exGateObject, cSelectionEffect, 2, 0);
+    xsEffectAmount(cGaiaSetAttribute, exGateObject, cUnitSizeX, 0.5, 0);
+    xsEffectAmount(cGaiaSetAttribute, exGateObject, cUnitSizeY, 0.5, 0);
+    xsEffectAmount(cGaiaSetAttribute, exGateObject, cObstructionType, 2, 0);
+    xsEffectAmount(cGaiaSetAttribute, exGateObject, cBlockageClass, 6, 0);
+    xsEffectAmount(cGaiaSetAttribute, exGateObject, cSelectionEffect, 2, 0);
     float waterGraphic = xsGetObjectAttribute(0, exWaterGraphicObject, cStandingGraphic);
     if (waterGraphic >= 0.0) {
-        xsEffectAmount(cSetAttribute, exGateObject, cStandingGraphic, waterGraphic, 0);
+        xsEffectAmount(cGaiaSetAttribute, exGateObject, cStandingGraphic, waterGraphic, 0);
     }
-    xsEffectAmount(cSetAttribute, exWaterEffect, cObstructionType, 4, 0);
-    xsEffectAmount(cSetAttribute, exWaterEffect, cUnitSizeX, 0.0, 0);
-    xsEffectAmount(cSetAttribute, exWaterEffect, cUnitSizeY, 0.0, 0);
-    xsEffectAmount(cSetAttribute, exFire, cObstructionType, 4, 0);
-    xsEffectAmount(cSetAttribute, exFire, cUnitSizeX, 0.0, 0);
-    xsEffectAmount(cSetAttribute, exFire, cUnitSizeY, 0.0, 0);
-    xsEffectAmount(cSetAttribute, exCloud, cObstructionType, 4, 0);
-    xsEffectAmount(cSetAttribute, exCloud, cUnitSizeX, 0.0, 0);
-    xsEffectAmount(cSetAttribute, exCloud, cUnitSizeY, 0.0, 0);
+    xsEffectAmount(cGaiaSetAttribute, exWaterEffect, cObstructionType, 4, 0);
+    xsEffectAmount(cGaiaSetAttribute, exWaterEffect, cUnitSizeX, 0.0, 0);
+    xsEffectAmount(cGaiaSetAttribute, exWaterEffect, cUnitSizeY, 0.0, 0);
+    xsEffectAmount(cGaiaSetAttribute, exFire, cObstructionType, 4, 0);
+    xsEffectAmount(cGaiaSetAttribute, exFire, cUnitSizeX, 0.0, 0);
+    xsEffectAmount(cGaiaSetAttribute, exFire, cUnitSizeY, 0.0, 0);
+    xsEffectAmount(cGaiaSetAttribute, exCloud, cObstructionType, 4, 0);
+    xsEffectAmount(cGaiaSetAttribute, exCloud, cUnitSizeX, 0.0, 0);
+    xsEffectAmount(cGaiaSetAttribute, exCloud, cUnitSizeY, 0.0, 0);
 }
 
 void exParticle(vector p = vector(-1, -1, -1), int now = 0, int life = 8) {
     int old = xsArrayGetInt(exEffects, exPoolCursor);
     if (exOwnScenery(old, exCloud)) { xsRemoveUnit(old); }
+    if (xsDoesUnitExist(old)) { return; } // Never abandon a live particle reference.
     int id = xsCreateUnit(exCloud, 0, p, false, false, false);
     xsArraySetInt(exEffects, exPoolCursor, id);
     xsArraySetInt(exExpires, exPoolCursor, now + life);
@@ -272,33 +277,39 @@ void exCleanParticles(int now = 0) {
         if (xsArrayGetInt(exExpires, i) <= now) {
             int id = xsArrayGetInt(exEffects, i);
             if (exOwnScenery(id, exCloud)) { xsRemoveUnit(id); }
-            xsArraySetInt(exEffects, i, -1);
+            if (xsDoesUnitExist(id) == false) { xsArraySetInt(exEffects, i, -1); }
         }
     }
 }
 
-void exClearGates(bool outsideOnly = false) {
+bool exClearGates(bool outsideOnly = false) {
+    bool cleared = true;
     for (i = 0; < 40) {
         if ((outsideOnly == false) || (i < 10) || (i >= 30)) {
             int id = xsArrayGetInt(exGates, i);
             if (exOwnScenery(id, exGateObject)) { xsRemoveUnit(id); }
-            xsArraySetInt(exGates, i, -1);
+            if (xsDoesUnitExist(id)) { cleared = false; }
+            else { xsArraySetInt(exGates, i, -1); }
         }
     }
+    return (cleared);
 }
 
 bool exRestoreGates() {
     bool complete = true;
     for (i = 0; < 40) {
         int id = xsArrayGetInt(exGates, i);
-        if (exOwnScenery(id, exGateObject) == false) {
+        if (xsDoesUnitExist(id) && (exOwnScenery(id, exGateObject) == false)) {
+            complete = false; // Never replace a live mismatched reference.
+        } else if (exOwnScenery(id, exGateObject) == false) {
             int row = exFloor(0.1 * i);
             int col = i % 10;
             // Never force an obstruction underneath a player's unit.
             int made = xsCreateUnit(exGateObject, 0,
                 exPoint(55.5 + col, 58.5 + row), false, false, true);
             xsArraySetInt(exGates, i, made);
-            if (made < 0) { complete = false; }
+            if (exOwnScenery(made, exGateObject) == false) { complete = false; }
+            else { if (exGateSlot(xsGetUnitPosition(made)) != i) { complete = false; } }
         }
     }
     return (complete);
@@ -311,11 +322,11 @@ void exMoveCurtains(int now = 0) {
     if (exPhase == 2) { opening = (stageTime - 60.0) / 20.0; }
     if (exPhase == 5) { opening = 1.0 - (stageTime - 420.0) / 40.0; }
     opening = opening * opening * (3.0 - 2.0 * opening);
-    for (i = 0; < 12) {
+    for (i = 0; < 36) {
         int side = i % 2;
         int row = exFloor(0.5 * i);
         float x = 58.5 - opening * 5.0;
-        float y = 46.5 + 5.0 * row;
+        float y = 46.5 + (25.0 / 17.0) * row;
         if (side == 1) { x = 120.0 - x; y = 120.0 - y; }
         int id = xsArrayGetInt(exCurtains, i);
         if (exOwnScenery(id, exWaterEffect) == false) {
@@ -347,12 +358,10 @@ void exSea(int now = 0) {
             exCue("exodus_parting");
         }
         if (phase == 3) {
-            exClearGates();
+            exOpeningFailures = 0;
+            exOpenAnnounced = false;
             exGateFailures = 0;
             xsSetColorMood(cColorMoodDesert, 12);
-            exNotice("EXODUS: THE SEA ROAD IS OPEN. Both armies may cross. The public timer shows when the waters return.");
-            exTimer("WATERS RETURN in %d", 340);
-            exCue("exodus_open");
         }
         if (phase == 4) {
             xsSetColorMood(cColorMoodEvening, 15);
@@ -367,9 +376,27 @@ void exSea(int now = 0) {
             exCue("exodus_flood");
         }
     }
+    if ((phase == 3) || (phase == 4)) {
+        if (exClearGates()) {
+            if (exOpenAnnounced == false) {
+                exOpenAnnounced = true;
+                exNotice("EXODUS: THE SEA ROAD IS OPEN. All tracked barriers verified removed. Both armies may cross.");
+                exTimer("WATERS RETURN in %d", 1080 - ((now - 660) % exPeriod + 660));
+                exCue("exodus_open");
+            }
+        } else {
+            exOpeningFailures = exOpeningFailures + 1;
+            if (exOpeningFailures >= 3) {
+                exFailure = true;
+                xsClearTimer(710);
+                exNotice("EXODUS runtime-01: Barrier removal was not confirmed. Events suspended. Crossing is NOT certified open. INVALID for competition.");
+                return;
+            }
+        }
+    }
     exSafetyWarnings(now);
     if (phase == 2) {
-        if ((now - exFirstWind) % exPeriod >= 70) { exClearGates(true); }
+        if ((now - exFirstWind) % exPeriod >= 70) { bool outerCleared = exClearGates(true); }
     }
     if ((phase == 0) || (phase == 1) || (phase == 5)) {
         if (exRestoreGates() == false) { exGateFailures = exGateFailures + 1; }
@@ -378,30 +405,37 @@ void exSea(int now = 0) {
         // competitive ruleset. Fail open, stop all hazards, announce invalid.
         if (exGateFailures >= 120) {
             exFailure = true;
-            exClearGates();
+            bool cleared = exClearGates();
             xsClearTimer(710);
-            exNotice("EXODUS: Sea barriers could not restore for 120 seconds. Events are suspended and the sea road is open. INVALID for competition; report this generation.");
+            if (cleared) { exNotice("EXODUS: Sea barriers could not restore for 120 seconds. Events suspended; tracked barriers verified removed. INVALID for competition."); }
+            else { exNotice("EXODUS: Sea barriers could not restore for 120 seconds. Events suspended; barriers remain or could not be verified. Crossing is NOT certified open. INVALID for competition."); }
         }
     }
     exMoveCurtains(now);
 }
 
-void exSurveyLandUnits(int now = 0) {
+void exVisitLandUnit(int id = -1, int now = 0) {
+    if (xsDoesUnitExist(id) == false) { return; }
+    int owner = xsGetUnitOwner(id);
+    if ((owner != 1) && (owner != 2)) { return; }
+    int klass = xsGetUnitClass(id);
+    if (klass < 900) { klass = klass + 900; }
+    if (exLandClass(klass) == false) { return; }
+    if (xsGetGarrisonedInUnitId(id) >= 0) { return; }
     bool dangerous = ((exPhase == 0) || (exPhase == 1) || (exPhase == 5));
-    for (player = 1; < 3) {
-        for (c = 900; < 966) {
-            if (exLandClass(c)) {
-                exQuery = xsGetPlayerUnitIds(player, c, exQuery);
-                int count = xsArrayGetSize(exQuery);
-                for (i = 0; < count) {
-                    int id = xsArrayGetInt(exQuery, i);
-                    if (xsDoesUnitExist(id)) {
-                        if (xsGetGarrisonedInUnitId(id) < 0) {
                             vector p = xsGetUnitPosition(id);
                             if (dangerous && exInSea(p)) {
                                 float hp = xsGetUnitHitpoints(id) - exFloodDps;
                                 if (hp < 0.0) { hp = 0.0; }
                                 xsSetUnitHitpoints(id, hp);
+                                if (xsDoesUnitExist(id)) {
+                                    if (xsGetUnitHitpoints(id) > hp + 0.1) {
+                                        exFailure = true;
+                                        xsClearTimer(710);
+                                        exNotice("EXODUS runtime-01: Flood HP change failed verification. Events suspended; INVALID for competition.");
+                                        return;
+                                    }
+                                }
                             }
                             // Either player can discover either bush; neither
                             // receives an economic or combat buff from it.
@@ -422,7 +456,44 @@ void exSurveyLandUnits(int now = 0) {
                                     }
                                 }
                             }
+}
+
+void exSurveyLandUnits(int now = 0) {
+    // Fixed owned query buffer: never assign a native return value to its ID.
+    for (player = 1; < 3) {
+        int found = 0;
+        for (c = 900; < 966) {
+            if (exLandClass(c)) {
+                int queryResult = xsGetPlayerUnitIds(player, c, exQuery);
+                int count = xsArrayGetSize(exQuery);
+                for (i = 0; < count) {
+                    int id = xsArrayGetInt(exQuery, i);
+                    if (xsDoesUnitExist(id)) {
+                        int klass = xsGetUnitClass(id);
+                        if (klass < 900) { klass = klass + 900; }
+                        if ((xsGetUnitOwner(id) == player) && (klass == c)) {
+                            found = found + 1;
+                            exVisitLandUnit(id, now);
+                            if (exFailure) { return; }
                         }
+                    }
+                }
+            }
+        }
+        if (found == 0) {
+            // Verified reference getters provide a fallback for empty native queries.
+            // Grow the scan window before reaching its edge; cap work explicitly.
+            int limit = exRefScanLimit;
+            for (ref = 0; < limit) {
+                if (xsDoesUnitExist(ref)) {
+                    if ((ref >= limit - 1024) && (exRefScanLimit < 65536)) { exRefScanLimit = limit + 4096; }
+                    if (xsGetUnitOwner(ref) == player) {
+                        if (exQueryFallbackNotice == false) {
+                            exQueryFallbackNotice = true;
+                            exNotice("EXODUS runtime-01: Empty player query; using reference scan for unit effects.");
+                        }
+                        exVisitLandUnit(ref, now);
+                        if (exFailure) { return; }
                     }
                 }
             }
@@ -448,7 +519,7 @@ void exPillar(int now = 0) {
             } else { xsSetUnitPosition(id, exPoint(x, y), false); }
         } else {
             if (exOwnScenery(id, exFire)) { xsRemoveUnit(id); }
-            xsArraySetInt(exPillars, side, -1);
+            if (xsDoesUnitExist(id) == false) { xsArraySetInt(exPillars, side, -1); }
         }
         if (now % 3 == 0) {
             exParticle(exPoint(x, y, 1.0), now, 8);
@@ -544,9 +615,19 @@ void exJericho(int now = 0) {
     }
     if (now >= 1447) {
         int count = xsArrayGetSize(exWalls);
+        int remaining = 0;
         for (i = 0; < count) {
             int id = xsArrayGetInt(exWalls, i);
             if (exOwnScenery(id, exWall)) { xsRemoveUnit(id); }
+            if (exOwnScenery(id, exWall)) { remaining = remaining + 1; }
+        }
+        if (remaining > 0) {
+            if (now >= 1457) {
+                exFailure = true;
+                xsClearTimer(710);
+                exNotice("EXODUS runtime-01: Jericho wall removal unconfirmed. Events suspended; INVALID for competition.");
+            }
+            return;
         }
         exJerichoFallen = true;
         exNotice("EXODUS: THE WALLS OF JERICHO FALL. Both neutral enclosures are open. Player-built walls are untouched.");
@@ -561,7 +642,7 @@ void exJericho(int now = 0) {
 bool exInitReject(string detail = "") {
     // Report only on the final retry so delayed RMS placement does not spam chat.
     if (exAttempts >= 10) {
-        exNotice("EXODUS: INITIALIZATION FAILED [walls-01]: " + detail);
+        exNotice("EXODUS: INITIALIZATION FAILED [runtime-01]: " + detail);
     }
     return (false);
 }
@@ -674,7 +755,7 @@ bool exInitialize() {
             if (exWallSlot(xsGetUnitPosition(oldMarker)) == i) { xsRemoveUnit(oldMarker); }
         }
     }
-    exNotice("EXODUS walls-01: Registered 40 sea barriers, 64 walls and 2 shrubs by reference ID; all authored slots verified.");
+    exNotice("EXODUS runtime-01: Registered 40 sea barriers, 64 walls and 2 shrubs by reference ID; all authored slots verified.");
     exOriginalMood = xsGetColorMood();
     exConfigureGaia();
     exNotice("EXODUS: SEA OF SIGNS. Tiny 1v1 Conquest. First sea crossing 12:20; flood 18:00; repeats every 18 minutes. Coastal roads NEVER close. Flooded seabed: 6 HP/second to land units.");
@@ -692,7 +773,7 @@ maxInterval 1
     exLastTick = now;
     if (exReady == false) {
         exAttempts = exAttempts + 1;
-        if (exAttempts == 1) { exNotice("EXODUS XS BUILD: 2026-09-08 walls-01. Checking map initialization."); }
+        if (exAttempts == 1) { exNotice("EXODUS XS BUILD: 2026-09-08 runtime-01. Checking map initialization."); }
         exReady = exInitialize();
         if ((exReady == false) && (exAttempts >= 10)) {
             xsDisableSelf();
@@ -705,24 +786,27 @@ maxInterval 1
     if (exFailure) { xsSetColorMood(exOriginalMood, 10); return; }
     if (refresh) { exRefreshTimer(now); }
     exSurveyLandUnits(now);
+    if (exFailure) { xsSetColorMood(exOriginalMood, 10); return; }
     exPillar(now);
     exSceneryMaintenance(now);
     if ((now >= 420) && (xsArrayGetInt(exMannaDone, 0) == 0)) { exManna(0, now); }
     if ((now >= 1500) && (xsArrayGetInt(exMannaDone, 1) == 0)) { exManna(1, now); }
     exJericho(now);
+    if (exFailure) { xsSetColorMood(exOriginalMood, 10); return; }
     exAmbient(now);
     exFlushCue(now);
 }
 
 void main() {
     exPendingCue = 0;
+    exQuery = xsArrayCreateInt(0, -1, "exPlayerQuery");
     exGates = xsArrayCreateInt(40, -1, "exGates");
     exWalls = xsArrayCreateInt(64, -1, "exWalls");
     exWallAnchors = xsArrayCreateInt(64, -1, "exWallAnchors");
     exShrubs = xsArrayCreateInt(2, -1, "exShrubs");
     exEffects = xsArrayCreateInt(exPoolSize, -1, "exEffects");
     exExpires = xsArrayCreateInt(exPoolSize, 0, "exExpires");
-    exCurtains = xsArrayCreateInt(12, -1, "exCurtains");
+    exCurtains = xsArrayCreateInt(36, -1, "exCurtains");
     exPillars = xsArrayCreateInt(2, -1, "exPillars");
     exMannaDone = xsArrayCreateInt(2, 0, "exMannaDone");
     exBushLit = xsArrayCreateInt(2, 0, "exBushLit");
