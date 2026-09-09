@@ -438,8 +438,8 @@ void exPillar(int now = 0) {
 
     }
     if (mode != exLastPillar) {
-        if (mode == 1) { exNotice("EXODUS: THE PILLARS OF FIRE GUIDE THE BANKS."); }
-        else { exNotice("EXODUS: THE PILLARS OF CLOUD GUIDE THE BANKS."); }
+        if (mode == 1) { exNotice("EXODUS: PILLARS OF FIRE RISE ON BOTH SHORES."); }
+        else { exNotice("EXODUS: PILLARS OF CLOUD RISE ON BOTH SHORES."); }
         exLastPillar = mode;
     }
 }
