@@ -214,12 +214,12 @@ void exSafetyWarnings(int now = 0) {
     // warning, never a burst of obsolete 30- and 10-second notices.
     if ((remaining <= 10) && (exWarningStage < 2)) {
         exWarningStage = 2;
-        exNotice("EXODUS: FINAL FLOOD WARNING - 10 SECONDS OR LESS. Leave the marked seabed NOW. Both coastal routes remain open.");
+        exNotice("FINAL FLOOD WARNING - 10 SECONDS OR LESS. Leave the marked seabed NOW. Both coastal routes remain open.");
         exCue("exodus_final_warning");
     } else {
         if ((remaining <= 30) && (exWarningStage < 1)) {
             exWarningStage = 1;
-            exNotice("EXODUS: FLOOD WARNING - 30 SECONDS OR LESS. Withdraw toward either bank; leave the marked seabed.");
+            exNotice("FLOOD WARNING - 30 SECONDS OR LESS. Withdraw toward either bank; leave the marked seabed.");
             exCue("exodus_warning");
         }
     }
@@ -285,36 +285,36 @@ void exSea(int now = 0) {
         exPhase = phase;
         if (phase == 0) {
             xsSetColorMood(cColorMoodDesert, 12);
-            exNotice("EXODUS: SEA ROAD DANGEROUS: 6 HP/second to land units. No physical barrier; crossing is at your own risk. Coastal roads stay safe.");
+            exNotice("SEA ROAD DANGEROUS: 6 HP/second to land units. No physical barrier; crossing is at your own risk. Coastal roads stay safe.");
             int wait = exFirstWind - now;
             if (now >= exFirstWind) { wait = exPeriod - (now - exFirstWind) % exPeriod; }
             exTimer("East wind in %d", wait);
         }
         if (phase == 1) {
             xsSetColorMood(cColorMoodEvening, 20);
-            exNotice("EXODUS: THE EAST WIND. The public timer counts down to the safe crossing; damage continues until the SAFE signal.");
+            exNotice("THE EAST WIND. The public timer counts down to the safe crossing; damage continues until the SAFE signal.");
             exTimer("Sea crossing opens in %d", 80);
             exCue("exodus_wind");
         }
         if (phase == 2) {
-            exNotice("EXODUS: THE WATERS DIVIDE. Watch the water curtains withdraw; damage continues until the SAFE signal.");
+            exNotice("THE WATERS DIVIDE. Watch the water curtains withdraw; damage continues until the SAFE signal.");
             exCue("exodus_parting");
         }
         if (phase == 3) {
             xsSetColorMood(cColorMoodDesert, 12);
-            exNotice("EXODUS: THE SEA ROAD IS SAFE. Flood damage is off until the waters return. Both armies may cross.");
+            exNotice("THE SEA ROAD IS SAFE. Flood damage is off until the waters return. Both armies may cross.");
             exTimer("WATERS RETURN in %d", 420 - (now - exFirstWind) % exPeriod);
             exCue("exodus_open");
         }
         if (phase == 4) {
             xsSetColorMood(cColorMoodEvening, 15);
-            exNotice("EXODUS: FLOOD WARNING. Follow the evacuation countdown. Leave the marked seabed; flooded land units lose 6 HP per second.");
+            exNotice("FLOOD WARNING. Follow the evacuation countdown. Leave the marked seabed; flooded land units lose 6 HP per second.");
             exTimer("EVACUATE SEABED - %d", 90);
             exCue("exodus_warning");
         }
         if (phase == 5) {
             xsSetColorMood(cColorMoodMisty, 10);
-            exNotice("EXODUS: THE WATERS RETURN. The seabed now drains 6 HP per second from land units. Retreat toward either bank; ships are exempt.");
+            exNotice("THE WATERS RETURN. The seabed now drains 6 HP per second from land units. Retreat toward either bank; ships are exempt.");
             exTimer("Waters settling in %d", 40);
             exCue("exodus_flood");
         }
@@ -341,7 +341,7 @@ void exVisitLandUnit(int id = -1, int now = 0) {
                                     if (xsGetUnitHitpoints(id) > hp + 0.1) {
                                         exFailure = true;
                                         xsClearTimer(710);
-                                        exNotice("EXODUS hazard-01: Flood HP change failed verification. Events suspended; INVALID for competition.");
+                                        exNotice("[hazard-01] Flood HP change failed verification. Events suspended; INVALID for competition.");
                                         return;
                                     }
                                 }
@@ -360,7 +360,7 @@ void exVisitLandUnit(int id = -1, int now = 0) {
                                         int fireId = xsCreateUnit(exFire, 0, exPoint(bx, by), false, false, false);
                                         xsArraySetInt(exBushFires, b, fireId);
                                         exParticle(exPoint(bx, by, 1.0), now, 8);
-                                        exNotice("EXODUS: A BUSH BURNS, YET IS NOT CONSUMED. A sign only: no player receives a hidden bonus.");
+                                        exNotice("A BUSH BURNS, YET IS NOT CONSUMED. A sign only: no player receives a hidden bonus.");
                                         exCue("exodus_bush");
                                     }
                                 }
@@ -399,7 +399,7 @@ void exSurveyLandUnits(int now = 0) {
                     if (xsGetUnitOwner(ref) == player) {
                         if (exQueryFallbackNotice == false) {
                             exQueryFallbackNotice = true;
-                            exNotice("EXODUS hazard-01: Empty player query; using reference scan for unit effects.");
+                            exNotice("[hazard-01] Empty player query; using reference scan for unit effects.");
                         }
                         exVisitLandUnit(ref, now);
                         if (exFailure) { return; }
@@ -438,8 +438,8 @@ void exPillar(int now = 0) {
 
     }
     if (mode != exLastPillar) {
-        if (mode == 1) { exNotice("EXODUS: PILLARS OF FIRE RISE ON BOTH SHORES."); }
-        else { exNotice("EXODUS: PILLARS OF CLOUD RISE ON BOTH SHORES."); }
+        if (mode == 1) { exNotice("PILLARS OF FIRE RISE ON BOTH SHORES."); }
+        else { exNotice("PILLARS OF CLOUD RISE ON BOTH SHORES."); }
         exLastPillar = mode;
     }
 }
@@ -503,11 +503,11 @@ void exManna(int wave = 0, int now = 0) {
         xsArraySetInt(exFoodRetries, wave, retries);
         if (retries >= 30) {
             xsArraySetInt(exMannaDone, wave, -1);
-            exNotice("EXODUS: Both manna gardens must be clear. This wave is cancelled for BOTH banks; no food was awarded.");
+            exNotice("Both manna gardens must be clear. This wave is cancelled for BOTH banks; no food was awarded.");
         }
     } else {
         xsArraySetInt(exMannaDone, wave, 1);
-        exNotice("EXODUS: MANNA IN THE WILDERNESS. Three new 75-food bushes blossom on EACH bank. Gather normally; either player may claim them.");
+        exNotice("MANNA IN THE WILDERNESS. Three new 75-food bushes blossom on EACH bank. Gather normally; either player may claim them.");
         exCue("exodus_manna");
         exParticle(exPoint(74.5, 35.5 + 3.0 * wave), now, 10);
         exParticle(exPoint(45.5, 84.5 - 3.0 * wave), now, 10);
@@ -521,7 +521,7 @@ void exJericho(int now = 0) {
         if (horn > exLastHorn) {
             exLastHorn = horn;
             exCue("exodus_horn");
-            if (horn == 0) { exNotice("EXODUS: SEVEN TRUMPETS. Both ancient enclosures fall after the seventh call."); }
+            if (horn == 0) { exNotice("SEVEN TRUMPETS. Both ancient enclosures fall after the seventh call."); }
         }
     }
     if (now >= 1447) {
@@ -536,12 +536,12 @@ void exJericho(int now = 0) {
             if (now >= 1457) {
                 exFailure = true;
                 xsClearTimer(710);
-                exNotice("EXODUS hazard-01: Jericho wall removal unconfirmed. Events suspended; INVALID for competition.");
+                exNotice("[hazard-01] Jericho wall removal unconfirmed. Events suspended; INVALID for competition.");
             }
             return;
         }
         exJerichoFallen = true;
-        exNotice("EXODUS: THE WALLS OF JERICHO FALL. Both neutral enclosures are open. Player-built walls are untouched.");
+        exNotice("THE WALLS OF JERICHO FALL. Both neutral enclosures are open. Player-built walls are untouched.");
         exCue("exodus_jericho");
         for (i = 0; < 6) {
             exParticle(exPoint(7.5 + i, 56.5), now, 12);
@@ -553,7 +553,7 @@ void exJericho(int now = 0) {
 bool exInitReject(string detail = "") {
     // Report only on the final retry so delayed RMS placement does not spam chat.
     if (exAttempts >= 10) {
-        exNotice("EXODUS: INITIALIZATION FAILED [hazard-01]: " + detail);
+        exNotice("INITIALIZATION FAILED [hazard-01]: " + detail);
     }
     return (false);
 }
@@ -661,10 +661,10 @@ bool exInitialize() {
             if (exWallSlot(xsGetUnitPosition(oldMarker)) == i) { xsRemoveUnit(oldMarker); }
         }
     }
-    exNotice("EXODUS hazard-01: Registered 64 walls and 2 shrubs; damage-only sea road by reference ID; all authored slots verified.");
+    exNotice("[hazard-01] Registered 64 walls and 2 shrubs; damage-only sea road by reference ID; all authored slots verified.");
     exOriginalMood = xsGetColorMood();
     exConfigureGaia();
-    exNotice("EXODUS: SEA OF SIGNS. Tiny 1v1 Conquest. Sea road always passable; SAFE 12:20 to 18:00; repeats every 18 minutes. Coastal roads NEVER close. Flooded seabed: 6 HP/second to land units.");
+    exNotice("SEA OF SIGNS. Tiny 1v1 Conquest. Sea road always passable; SAFE 12:20 to 18:00; repeats every 18 minutes. Coastal roads NEVER close. Flooded seabed: 6 HP/second to land units.");
     return (true);
 }
 
@@ -679,7 +679,7 @@ maxInterval 1
     exLastTick = now;
     if (exReady == false) {
         exAttempts = exAttempts + 1;
-        if (exAttempts == 1) { exNotice("EXODUS XS BUILD: 2026-09-08 hazard-01. Checking map initialization."); }
+        if (exAttempts == 1) { exNotice("XS BUILD: 2026-09-08 hazard-01. Checking map initialization."); }
         exReady = exInitialize();
         if ((exReady == false) && (exAttempts >= 10)) {
             xsDisableSelf();

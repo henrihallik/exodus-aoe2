@@ -136,7 +136,7 @@ test('diagnostic build reports every initialization rejection with actual values
   for(const [w,pattern] of cases) {
     w.run(1,9);
     assert.equal(w.messages.length,1);
-    assert.match(w.messages[0].message,/EXODUS XS BUILD: 2026-09-08 hazard-01/);
+    assert.match(w.messages[0].message,/XS BUILD: 2026-09-08 hazard-01/);
     w.run(10,20);
     assert.equal(w.messages.filter(m=>m.message.includes('INITIALIZATION FAILED')).length,1);assert.equal(w.disabled,true);
     assert.match(w.messages.at(-1).message,/INITIALIZATION FAILED \[hazard-01\]/);
@@ -442,3 +442,7 @@ test('bank pillars use two persistent ground-level smoke emitters without trails
   w.value('exPhase=1; exPillar(660)');assert.equal(w.count(304),2);
   w.value('exPhase=3; exPillar(740)');assert.equal(w.count(304),0);assert.equal(w.count(1308),2);
 });
+
+ test("in-game notices omit the Exodus prefix",()=>{
+  assert.doesNotMatch(source,/exNotice\("EXODUS/);
+ });
